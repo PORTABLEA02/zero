@@ -151,6 +151,11 @@ export function FamilleManagement() {
                 <div className="text-xs text-gray-500 truncate">
                   <span className="font-medium">Ajouté le</span> {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}
                 </div>
+                {membre.pieceJustificative && (
+                  <div className="text-xs text-gray-500 truncate">
+                    <span className="font-medium">Pièce:</span> {membre.pieceJustificative.nom}
+                  </div>
+                )}
               </div>
             </div>
           ))}

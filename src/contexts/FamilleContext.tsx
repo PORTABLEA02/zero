@@ -81,11 +81,29 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
+    // Simuler l'upload du fichier de pièce justificative
+    let pieceJustificativeInfo = undefined;
+    if (data.pieceJustificative) {
+      pieceJustificativeInfo = {
+        nom: data.pieceJustificative.name,
+        taille: data.pieceJustificative.size,
+        type: data.pieceJustificative.type,
+        dateUpload: new Date().toISOString(),
+        url: `uploads/famille/${Date.now()}_${data.pieceJustificative.name}` // URL simulée
+      };
+    }
+
     const nouveauMembre: MembreFamille = {
       id: Date.now().toString(),
-      ...data,
+      nom: data.nom,
+      prenom: data.prenom,
+      npi: data.npi,
+      acteNaissance: data.acteNaissance,
+      dateNaissance: data.dateNaissance,
+      relation: data.relation,
       membreId,
-      dateAjout: new Date().toISOString().split('T')[0]
+      dateAjout: new Date().toISOString().split('T')[0],
+      pieceJustificative: pieceJustificativeInfo
     };
 
     setMembresFamille(prev => [...prev, nouveauMembre]);

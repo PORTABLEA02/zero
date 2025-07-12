@@ -149,6 +149,13 @@ export function DemandeForm() {
     if (formData.paiement.modePaiement === 'mobile_money') {
       if (!formData.paiement.numeroAbonnement?.trim()) {
         newErrors.beneficiaireId = 'Le numéro d\'abonnement est requis pour Mobile Money';
+     } else {
+       const numeroClean = formData.paiement.numeroAbonnement.replace(/\s/g, '');
+       if (numeroClean.length < 9) {
+         newErrors.beneficiaireId = 'Le numéro d\'abonnement doit contenir au moins 9 chiffres';
+       } else if (!/^\d+$/.test(numeroClean)) {
+         newErrors.beneficiaireId = 'Le numéro d\'abonnement ne doit contenir que des chiffres';
+       }
       }
       if (!formData.paiement.nomAbonne?.trim()) {
         newErrors.beneficiaireNom = 'Le nom de l\'abonné est requis pour Mobile Money';
@@ -450,13 +457,25 @@ export function DemandeForm() {
                     Numéro d'abonnement
                   </label>
                   <input
-                    type="text"
+                   type="tel"
                     id="numeroAbonnement"
                     value={formData.paiement.numeroAbonnement || ''}
-                    onChange={(e) => handlePaiementChange('numeroAbonnement', e.target.value)}
+                   onChange={(e) => {
+                     // Ne permettre que les chiffres et les espaces
+                     const value = e.target.value.replace(/[^\d\s]/g, '');
+                     handlePaiementChange('numeroAbonnement', value);
+                   }}
+                   onKeyPress={(e) => {
+                     // Empêcher la saisie de caractères non numériques (sauf espaces)
+                     if (!/[0-9\s]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                       e.preventDefault();
+                     }
+                   }}
+                   maxLength={15}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="77 123 45 67"
                   />
+                 <p className="text-xs text-gray-500 mt-1">Format: 77 123 45 67 (chiffres et espaces uniquement)</p>
                 </div>
                 <div>
                   <label htmlFor="nomAbonne" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">

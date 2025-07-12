@@ -50,12 +50,17 @@ export interface MembreFamille {
   prenom: string;
   npi: string;
   acteNaissance: string;
-  npi: string;
-  acteNaissance: string;
   dateNaissance: string;
   relation: 'epoux' | 'epouse' | 'enfant' | 'pere' | 'mere' | 'beau_pere' | 'belle_mere';
   membreId: string;
   dateAjout: string;
+  pieceJustificative?: {
+    nom: string;
+    taille: number;
+    type: string;
+    dateUpload: string;
+    url?: string;
+  };
 }
 
 export interface MembreFamilleFormData {
@@ -65,6 +70,7 @@ export interface MembreFamilleFormData {
   acteNaissance: string;
   dateNaissance: string;
   relation: MembreFamille['relation'];
+  pieceJustificative?: File;
   pieceJustificative?: File;
 }
 
