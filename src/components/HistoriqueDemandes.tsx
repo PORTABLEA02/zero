@@ -12,9 +12,33 @@ export function HistoriqueDemandes() {
   const [filtreType, setFiltreType] = useState<string>('tous');
   const [recherche, setRecherche] = useState('');
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
+  const [mesDemandes, setMesDemandes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
-  const mesDemandes = user ? getDemandesByRole('membre', user.id) : [];
+  // Charger les demandes du membre
+  React.useEffect(() => {
+    const loadDemandes = async () => {
+      if (!user) {
+        setMesDemandes([]);
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const demandes = await getDemandesByRole('membre', user.id);
+        setMesDemandes(Array.isArray(demandes) ? demandes : []);
+      } catch (error) {
+        console.error('Error loading demandes:', error);
+        setMesDemandes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDemandes();
+  }, [user, getDemandesByRole]);
 
   // Initialiser les filtres selon les paramètres URL
   React.useEffect(() => {
