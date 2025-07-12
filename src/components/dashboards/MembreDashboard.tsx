@@ -1,0 +1,264 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useDemandes } from '../../contexts/DemandeContext';
+import { useFamille } from '../../contexts/FamilleContext';
+import { 
+  Plus, 
+  FileText, 
+  Calendar, 
+  DollarSign, 
+  CheckCircle, 
+  XCircle, 
+  Clock,
+  Users,
+  History,
+  UserPlus
+} from 'lucide-react';
+import { DemandeForm } from '../DemandeForm';
+import { FamilleManagement } from '../FamilleManagement';
+import { HistoriqueDemandes } from '../HistoriqueDemandes';
+import { DemandeFormData } from '../../types';
+
+interface MembreDashboardProps {
+  activeView?: string;
+  onViewChange?: (view: string) => void;
+}
+
+export function MembreDashboard({ activeView = 'dashboard', onViewChange }: MembreDashboardProps) {
+  const { user } = useAuth();
+  const { createDemande, getDemandesByRole } = useDemandes();
+  const { getMembresFamilleByMembre } = useFamille();
+  const [showForm, setShowForm] = useState(false);
+  
+  const mesDemandes = getDemandesByRole('membre', user?.id);
+  const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
+
+  const handleCreateDemande = (data: DemandeFormData) => {
+    if (user) {
+      createDemande(data, user.id, user.name);
+      setShowForm(false);
+    }
+  };
+
+  const setActiveView = (view: string) => {
+    if (onViewChange) {
+      onViewChange(view);
+    }
+  };
+
+  const stats = {
+    soumises: mesDemandes.length,
+    enAttente: mesDemandes.filter(d => d.statut === 'en_attente').length,
+    approuvees: mesDemandes.filter(d => d.statut === 'acceptee' || d.statut === 'validee').length,
+    membresFamille: membresFamille.length
+  };
+
+  const statsCards = [
+    {
+      title: 'Demandes soumises',
+      value: stats.soumises,
+      icon: FileText,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600'
+    },
+    {
+      title: 'En attente',
+      value: stats.enAttente,
+      icon: Clock,
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600'
+    },
+    {
+      title: 'Approuvées',
+      value: stats.approuvees,
+      icon: CheckCircle,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600'
+    },
+    {
+      title: 'Membres famille',
+      value: stats.membresFamille,
+      icon: Users,
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600'
+    }
+  ];
+
+  const actionCards = [
+    {
+      title: 'Nouvelle demande',
+      description: 'Soumettre une demande de service',
+      icon: FileText,
+      iconColor: 'text-blue-600',
+      action: () => setActiveView('demande')
+    },
+    {
+      title: 'Gérer la famille',
+      description: 'Ajouter ou modifier les membres',
+      icon: UserPlus,
+      iconColor: 'text-green-600',
+      action: () => setActiveView('famille')
+    },
+    {
+      title: 'Voir l\'historique',
+      description: 'Consulter vos demandes passées',
+      icon: History,
+      iconColor: 'text-purple-600',
+      action: () => setActiveView('historique')
+    }
+  ];
+
+  // Rendu conditionnel selon la vue active
+  if (activeView === 'famille') {
+    return <FamilleManagement onBack={() => setActiveView('dashboard')} />;
+  }
+
+  if (activeView === 'historique') {
+    return <HistoriqueDemandes onBack={() => setActiveView('dashboard')} />;
+  }
+
+  if (activeView === 'demande') {
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <button
+            onClick={() => setActiveView('dashboard')}
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
+          >
+            ← Retour au dashboard
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Demande de service</h1>
+          <p className="text-gray-600">Créez une nouvelle demande de service</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Nouvelle demande
+          </button>
+        </div>
+
+        {showForm && (
+          <DemandeForm
+            onSubmit={handleCreateDemande}
+            onCancel={() => setShowForm(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p className="text-gray-600">Bienvenue sur votre espace personnel MuSAIB, Jean Dupont</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statsCards.map((stat, index) => (
+          <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+              </div>
+              <div className={`p-3 rounded-full ${stat.iconBg}`}>
+                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Demandes récentes */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Demandes récentes</h3>
+            <button 
+              onClick={() => setActiveView('historique')}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              Voir tout
+            </button>
+          </div>
+          <div className="p-6">
+            {mesDemandes.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-4">Aucune demande trouvée</p>
+                <button
+                  onClick={() => setActiveView('demande')}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvelle demande
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {mesDemandes.slice(0, 3).map((demande) => (
+                  <div key={demande.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {demande.type === 'mariage' ? 'Allocation Mariage' :
+                         demande.type === 'naissance' ? 'Allocation Naissance' :
+                         demande.type === 'deces' ? 'Allocation Décès' :
+                         demande.type === 'pret_social' ? 'Prêt Social' :
+                         'Prêt Économique'} - {demande.beneficiaireNom}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(demande.dateSoumission).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                      demande.statut === 'acceptee' ? 'bg-blue-100 text-blue-800' :
+                      demande.statut === 'validee' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {demande.statut === 'en_attente' ? 'En attente' :
+                       demande.statut === 'acceptee' ? 'Acceptée' :
+                       demande.statut === 'validee' ? 'Validée' : 'Rejetée'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions rapides */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
+          </div>
+          <div className="p-6 space-y-4">
+            {actionCards.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.action}
+                className="w-full flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+              >
+                <div className="flex-shrink-0 mr-4">
+                  <action.icon className={`w-8 h-8 ${action.iconColor}`} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{action.title}</h4>
+                  <p className="text-sm text-gray-500">{action.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
