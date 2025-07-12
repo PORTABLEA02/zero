@@ -24,24 +24,16 @@ export function GestionDemandes() {
   const [recherche, setRecherche] = useState('');
   const [commentaire, setCommentaire] = useState('');
 
-  // Filtrage des demandes
-  const demandesFiltrees = demandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
-    const matchType = filtreType === 'tous' || demande.type === filtreType;
-    const matchRecherche = 
-      demande.titre.toLowerCase().includes(recherche.toLowerCase()) ||
-      demande.membreNom.toLowerCase().includes(recherche.toLowerCase()) ||
-      demande.description.toLowerCase().includes(recherche.toLowerCase());
-    
-    return matchStatut && matchType && matchRecherche;
-  });
-
-  const handleValider = (demandeId: string) => {
-    if (user) {
-      updateDemandeStatut(demandeId, 'validee', user.id, user.name, commentaire);
-      setSelectedDemande(null);
-      setCommentaire('');
-    }
+  // Déplacer les fonctions utilitaires au début du composant
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'mariage': 'Allocation Mariage',
+      'naissance': 'Allocation Naissance',
+      'deces': 'Allocation Décès',
+      'pret_social': 'Prêt Social',
+      'pret_economique': 'Prêt Économique'
+    };
+    return labels[type as keyof typeof labels] || type;
   };
 
   const getStatutLabel = (statut: string) => {
@@ -74,15 +66,24 @@ export function GestionDemandes() {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    const labels = {
-      'mariage': 'Allocation Mariage',
-      'naissance': 'Allocation Naissance',
-      'deces': 'Allocation Décès',
-      'pret_social': 'Prêt Social',
-      'pret_economique': 'Prêt Économique'
-    };
-    return labels[type as keyof typeof labels] || type;
+  // Filtrage des demandes
+  const demandesFiltrees = demandes.filter(demande => {
+    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
+    const matchType = filtreType === 'tous' || demande.type === filtreType;
+    const matchRecherche = 
+      getTypeLabel(demande.type).toLowerCase().includes(recherche.toLowerCase()) ||
+      demande.membreNom.toLowerCase().includes(recherche.toLowerCase()) ||
+      demande.beneficiaireNom.toLowerCase().includes(recherche.toLowerCase());
+    
+    return matchStatut && matchType && matchRecherche;
+  });
+
+  const handleValider = (demandeId: string) => {
+    if (user) {
+      updateDemandeStatut(demandeId, 'validee', user.id, user.name, commentaire);
+      setSelectedDemande(null);
+      setCommentaire('');
+    }
   };
 
   const stats = {
@@ -247,7 +248,7 @@ export function GestionDemandes() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{demande.titre}</h3>
+                      <h3 className="text-lg font-medium text-gray-900">{getTypeLabel(demande.type)} - {demande.beneficiaireNom}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
                         {getStatutIcon(demande.statut)}
                         <span className="ml-1">{getStatutLabel(demande.statut)}</span>
@@ -271,7 +272,7 @@ export function GestionDemandes() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{demande.description}</p>
+                    <p className="text-sm text-gray-500">Bénéficiaire: {demande.beneficiaireNom} ({demande.beneficiaireRelation})</p>
                   </div>
                   
                   <div className="ml-4 flex space-x-2">

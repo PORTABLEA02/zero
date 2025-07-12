@@ -57,7 +57,7 @@ export function ImportationUtilisateurs() {
 
   const downloadTemplate = () => {
     // Simulation du téléchargement du modèle
-    const csvContent = "nom,prenom,email,telephone,service,adresse\nDupont,Jean,jean.dupont@email.com,+221771234567,Informatique,Dakar\n";
+    const csvContent = "nom,prenom,email,telephone,service,adresse,mot_de_passe\nDupont,Jean,jean.dupont@email.com,+221771234567,Informatique,Dakar,motdepasse123\nMartin,Marie,marie.martin@email.com,+221769876543,Comptabilite,Thies,password456\n";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -80,10 +80,12 @@ export function ImportationUtilisateurs() {
         <h3 className="text-sm font-medium text-blue-900 mb-2">Instructions d'importation</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Utilisez le modèle CSV fourni pour structurer vos données</li>
-          <li>• Champs obligatoires : nom, prénom, email, téléphone</li>
+          <li>• Champs obligatoires : nom, prénom, email, téléphone, mot_de_passe</li>
           <li>• Format accepté : CSV, Excel (.xlsx)</li>
           <li>• Taille maximale : 10 MB</li>
           <li>• Maximum 1000 utilisateurs par importation</li>
+          <li>• Le mot de passe sera utilisé tel quel pour chaque utilisateur</li>
+          <li>• Recommandation : utilisez des mots de passe sécurisés (min. 8 caractères)</li>
         </ul>
       </div>
 
@@ -238,10 +240,32 @@ export function ImportationUtilisateurs() {
           <h3 className="text-lg font-semibold text-gray-900">Historique des importations</h3>
         </div>
         <div className="p-6">
-          <div className="text-center py-8">
-            <FileText className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">Aucun historique d'importation</p>
-            <p className="text-sm text-gray-400">Les importations passées s'afficheront ici</p>
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h4 className="font-medium text-gray-900">Importation du 20/01/2024</h4>
+                  <p className="text-sm text-gray-600">Fichier: adherents_janvier_2024.csv</p>
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Réussie
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-green-600">45</span> importés
+                </div>
+                <div>
+                  <span className="font-medium text-red-600">3</span> erreurs
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">48</span> total
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Mots de passe configurés automatiquement pour tous les utilisateurs importés
+              </p>
+            </div>
           </div>
         </div>
       </div>

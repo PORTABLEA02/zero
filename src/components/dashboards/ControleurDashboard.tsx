@@ -6,40 +6,8 @@ import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock, User, Filt
 export function ControleurDashboard() {
   const { user } = useAuth();
   const { getDemandesByRole, updateDemandeStatut } = useDemandes();
-  const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
-  const [commentaire, setCommentaire] = useState('');
-  const [filtreStatut, setFiltreStatut] = useState<string>('en_attente');
-  const [recherche, setRecherche] = useState('');
   
-  const toutesLesDemandes = getDemandesByRole('controleur');
-  
-  // Filtrage des demandes
-  const demandesFiltrees = toutesLesDemandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
-    const matchRecherche = 
-      demande.titre.toLowerCase().includes(recherche.toLowerCase()) ||
-      demande.membreNom.toLowerCase().includes(recherche.toLowerCase()) ||
-      demande.description.toLowerCase().includes(recherche.toLowerCase());
-    
-    return matchStatut && matchRecherche;
-  });
-
-  const handleApprouver = (demandeId: string) => {
-    if (user) {
-      updateDemandeStatut(demandeId, 'acceptee', user.id, user.name, commentaire);
-      setSelectedDemande(null);
-      setCommentaire('');
-    }
-  };
-
-  const handleRejeter = (demandeId: string) => {
-    if (user && commentaire.trim()) {
-      updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
-      setSelectedDemande(null);
-      setCommentaire('');
-    }
-  };
-
+  // Fonctions utilitaires déclarées en premier pour éviter les erreurs de référence
   const getTypeLabel = (type: string) => {
     const labels = {
       'mariage': 'Allocation Mariage',
@@ -78,6 +46,40 @@ export function ControleurDashboard() {
       case 'rejetee': return <XCircle className="w-4 h-4" />;
       case 'validee': return <CheckCircle className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
+    }
+  };
+
+  const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
+  const [commentaire, setCommentaire] = useState('');
+  const [filtreStatut, setFiltreStatut] = useState<string>('en_attente');
+  const [recherche, setRecherche] = useState('');
+  
+  const toutesLesDemandes = getDemandesByRole('controleur');
+  
+  // Filtrage des demandes
+  const demandesFiltrees = toutesLesDemandes.filter(demande => {
+    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
+    const matchRecherche = 
+      (getTypeLabel(demande.type) || '').toLowerCase().includes(recherche.toLowerCase()) ||
+      (demande.membreNom || '').toLowerCase().includes(recherche.toLowerCase()) ||
+      (demande.beneficiaireNom || '').toLowerCase().includes(recherche.toLowerCase());
+    
+    return matchStatut && matchRecherche;
+  });
+
+  const handleApprouver = (demandeId: string) => {
+    if (user) {
+      updateDemandeStatut(demandeId, 'acceptee', user.id, user.name, commentaire);
+      setSelectedDemande(null);
+      setCommentaire('');
+    }
+  };
+
+  const handleRejeter = (demandeId: string) => {
+    if (user && commentaire.trim()) {
+      updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
+      setSelectedDemande(null);
+      setCommentaire('');
     }
   };
 
@@ -242,7 +244,7 @@ export function ControleurDashboard() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-medium text-gray-900">{demande.titre}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">{getTypeLabel(demande.type)} - {demande.beneficiaireNom}</h3>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
                             {getStatutIcon(demande.statut)}
                             <span className="ml-1">{getStatutLabel(demande.statut)}</span>
@@ -253,7 +255,7 @@ export function ControleurDashboard() {
                           <User className="w-4 h-4 mr-1" />
                           {demande.membreNom}
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">{demande.description}</p>
+                        <p className="text-sm text-gray-500 mt-2">Bénéficiaire: {demande.beneficiaireNom} ({demande.beneficiaireRelation})</p>
                         {demande.montant && (
                           <div className="flex items-center mt-2 text-sm text-gray-600">
                             <DollarSign className="w-4 h-4 mr-1" />
