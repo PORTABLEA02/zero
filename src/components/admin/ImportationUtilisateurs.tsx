@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
-import { Upload, Download, FileText, AlertCircle, CheckCircle, X, Users } from 'lucide-react';
+import { Upload, Download, FileText, AlertCircle, CheckCircle, X, Users, Eye, Edit } from 'lucide-react';
+
+interface UserPreview {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string;
+  service: string;
+  adresse: string;
+  mot_de_passe: string;
+  errors: string[];
+  lineNumber: number;
+}
 
 export function ImportationUtilisateurs() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [usersPreviews, setUsersPreviews] = useState<UserPreview[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
   const [importResults, setImportResults] = useState<{
     success: number;
     errors: number;
@@ -28,30 +42,106 @@ export function ImportationUtilisateurs() {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setUploadedFile(e.dataTransfer.files[0]);
+      setShowPreview(false);
+      setUsersPreviews([]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadedFile(e.target.files[0]);
+      setShowPreview(false);
+      setUsersPreviews([]);
+    }
+  };
+
+  const parseCSVFile = (file: File): Promise<UserPreview[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n').filter(line => line.trim());
+          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+          
+          const users: UserPreview[] = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const errors: string[] = [];
+            
+            // Validation des données
+            const nom = values[headers.indexOf('nom')] || '';
+            const prenom = values[headers.indexOf('prenom')] || '';
+            const email = values[headers.indexOf('email')] || '';
+            const telephone = values[headers.indexOf('telephone')] || '';
+            const service = values[headers.indexOf('service')] || '';
+            const adresse = values[headers.indexOf('adresse')] || '';
+            const mot_de_passe = values[headers.indexOf('mot_de_passe')] || '';
+            
+            // Validation
+            if (!nom) errors.push('Nom manquant');
+            if (!prenom) errors.push('Prénom manquant');
+            if (!email) errors.push('Email manquant');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Format email invalide');
+            if (!telephone) errors.push('Téléphone manquant');
+            if (!mot_de_passe) errors.push('Mot de passe manquant');
+            else if (mot_de_passe.length < 8) errors.push('Mot de passe trop court (min. 8 caractères)');
+            
+            users.push({
+              nom,
+              prenom,
+              email,
+              telephone,
+              service,
+              adresse,
+              mot_de_passe,
+              errors,
+              lineNumber: i + 1
+            });
+          }
+          
+          resolve(users);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  const handlePreviewFile = async () => {
+    if (!uploadedFile) return;
+    
+    try {
+      const users = await parseCSVFile(uploadedFile);
+      setUsersPreviews(users);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Erreur lors de l\'analyse du fichier:', error);
+      alert('Erreur lors de l\'analyse du fichier. Vérifiez le format.');
     }
   };
 
   const simulateImport = () => {
+    const validUsers = usersPreviews.filter(user => user.errors.length === 0);
+    const invalidUsers = usersPreviews.filter(user => user.errors.length > 0);
+    
     // Simulation d'importation
     setTimeout(() => {
       setImportResults({
-        success: 45,
-        errors: 3,
-        total: 48,
+        success: validUsers.length,
+        errors: invalidUsers.length,
+        total: usersPreviews.length,
         details: [
-          "45 utilisateurs importés avec succès",
-          "3 erreurs détectées (emails en doublon)",
-          "Ligne 12: Email déjà existant - jean.dupont@email.com",
-          "Ligne 25: Format email invalide - marie.martin@",
-          "Ligne 33: Champ obligatoire manquant - téléphone"
+          `${validUsers.length} utilisateurs importés avec succès`,
+          `${invalidUsers.length} erreurs détectées`,
+          ...invalidUsers.slice(0, 5).map(user => 
+            `Ligne ${user.lineNumber}: ${user.errors.join(', ')}`
+          )
         ]
       });
+      setShowPreview(false);
     }, 2000);
   };
 
@@ -66,6 +156,9 @@ export function ImportationUtilisateurs() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  const validUsers = usersPreviews.filter(user => user.errors.length === 0);
+  const invalidUsers = usersPreviews.filter(user => user.errors.length > 0);
 
   return (
     <div className="p-6">
@@ -153,19 +246,34 @@ export function ImportationUtilisateurs() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setUploadedFile(null)}
+                  onClick={() => {
+                    setUploadedFile(null);
+                    setShowPreview(false);
+                    setUsersPreviews([]);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
               
-              <button
-                onClick={simulateImport}
-                className="w-full mt-4 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Lancer l'importation
-              </button>
+              <div className="flex space-x-2 mt-4">
+                <button
+                  onClick={handlePreviewFile}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4 inline mr-2" />
+                  Prévisualiser
+                </button>
+                {showPreview && usersPreviews.length > 0 && (
+                  <button
+                    onClick={simulateImport}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Lancer l'importation
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -233,6 +341,125 @@ export function ImportationUtilisateurs() {
           )}
         </div>
       </div>
+
+      {/* Modal de prévisualisation */}
+      {showPreview && usersPreviews.length > 0 && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Prévisualisation des utilisateurs ({usersPreviews.length})
+              </h3>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Statistiques de prévisualisation */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{validUsers.length}</div>
+                <div className="text-sm text-green-800">Valides</div>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{invalidUsers.length}</div>
+                <div className="text-sm text-red-800">Erreurs</div>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{usersPreviews.length}</div>
+                <div className="text-sm text-blue-800">Total</div>
+              </div>
+            </div>
+
+            {/* Liste des utilisateurs */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b">
+                <h4 className="font-medium text-gray-900">Utilisateurs à importer</h4>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ligne</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prénom</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Téléphone</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {usersPreviews.map((user, index) => (
+                      <tr key={index} className={user.errors.length > 0 ? 'bg-red-50' : 'hover:bg-gray-50'}>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.lineNumber}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.nom}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.prenom}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.email}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.telephone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{user.service}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.errors.length === 0 ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Valide
+                            </span>
+                          ) : (
+                            <div>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mb-1">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Erreur
+                              </span>
+                              <div className="text-xs text-red-600">
+                                {user.errors.join(', ')}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-between items-center mt-6">
+              <div className="text-sm text-gray-600">
+                {validUsers.length > 0 && (
+                  <span className="text-green-600 font-medium">
+                    {validUsers.length} utilisateur(s) seront importés
+                  </span>
+                )}
+                {invalidUsers.length > 0 && (
+                  <span className="text-red-600 font-medium ml-4">
+                    {invalidUsers.length} erreur(s) détectée(s)
+                  </span>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Fermer
+                </button>
+                {validUsers.length > 0 && (
+                  <button
+                    onClick={simulateImport}
+                    className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                  >
+                    Importer {validUsers.length} utilisateur(s)
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Historique des importations */}
       <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
