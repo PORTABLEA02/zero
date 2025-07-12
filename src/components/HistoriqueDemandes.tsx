@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemandes } from '../contexts/DemandeContext';
 import { Calendar, DollarSign, FileText, Filter, Search, CheckCircle, XCircle, Clock, Eye, Download } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Calendar, DollarSign, FileText, Filter, Search, CheckCircle, XCircle, C
 export function HistoriqueDemandes() {
   const { user } = useAuth();
   const { getDemandesByRole } = useDemandes();
+  const [searchParams] = useSearchParams();
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [filtreType, setFiltreType] = useState<string>('tous');
   const [recherche, setRecherche] = useState('');
@@ -15,6 +16,27 @@ export function HistoriqueDemandes() {
   
   const mesDemandes = user ? getDemandesByRole('membre', user.id) : [];
 
+  // Initialiser les filtres selon les paramètres URL
+  React.useEffect(() => {
+    const statutParam = searchParams.get('statut');
+    const typeParam = searchParams.get('type');
+    
+    if (statutParam) {
+      if (statutParam === 'en_attente') {
+        setFiltreStatut('en_attente');
+      } else if (statutParam === 'approuvees') {
+        setFiltreStatut('acceptee'); // On filtre sur acceptee pour les approuvées
+      } else if (statutParam === 'validees') {
+        setFiltreStatut('validee');
+      } else if (statutParam === 'rejetees') {
+        setFiltreStatut('rejetee');
+      }
+    }
+    
+    if (typeParam) {
+      setFiltreType(typeParam);
+    }
+  }, [searchParams]);
   // Fonctions utilitaires
   const getStatutLabel = (statut: string) => {
     const labels = {
@@ -60,11 +82,15 @@ export function HistoriqueDemandes() {
   // Filtrage des demandes
   const demandesFiltrees = mesDemandes.filter(demande => {
     const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
+    
+    // Pour les approuvées, on inclut à la fois acceptee et validee
+    const matchStatutApprouvees = filtreStatut === 'acceptee' && (demande.statut === 'acceptee' || demande.statut === 'validee');
+    
     const matchType = filtreType === 'tous' || demande.type === filtreType;
     const matchRecherche = demande.beneficiaireNom.toLowerCase().includes(recherche.toLowerCase()) ||
                           getTypeLabel(demande.type).toLowerCase().includes(recherche.toLowerCase());
     
-    return matchStatut && matchType && matchRecherche;
+    return (matchStatut || matchStatutApprouvees) && matchType && matchRecherche;
   });
 
   const demandeSelectionnee = selectedDemande ? mesDemandes.find(d => d.id === selectedDemande) : null;
@@ -109,7 +135,7 @@ export function HistoriqueDemandes() {
             >
               <option value="tous">Tous les statuts</option>
               <option value="en_attente">En attente</option>
-              <option value="acceptee">Acceptée</option>
+              <option value="acceptee">Approuvées (Acceptée + Validée)</option>
               <option value="rejetee">Rejetée</option>
               <option value="validee">Validée</option>
             </select>
@@ -137,6 +163,8 @@ export function HistoriqueDemandes() {
                 setFiltreStatut('tous');
                 setFiltreType('tous');
                 setRecherche('');
+                // Nettoyer les paramètres URL
+                navigate('/membre/historique', { replace: true });
               }}
               className="w-full px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-xs sm:text-sm"
             >

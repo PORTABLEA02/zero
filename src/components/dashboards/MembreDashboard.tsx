@@ -42,28 +42,32 @@ export function MembreDashboard() {
       value: stats.soumises,
       icon: FileText,
       iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      path: '/membre/historique'
     },
     {
       title: 'En attente',
       value: stats.enAttente,
       icon: Clock,
       iconBg: 'bg-orange-100',
-      iconColor: 'text-orange-600'
+      iconColor: 'text-orange-600',
+      path: '/membre/historique?statut=en_attente'
     },
     {
       title: 'Approuvées',
       value: stats.approuvees,
       icon: CheckCircle,
       iconBg: 'bg-green-100',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
+      path: '/membre/historique?statut=approuvees'
     },
     {
       title: 'Membres famille',
       value: stats.membresFamille,
       icon: Users,
       iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      path: '/membre/famille'
     }
   ];
 
@@ -103,17 +107,21 @@ export function MembreDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         {statsCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
+          <button 
+            key={index} 
+            onClick={() => navigate(stat.path)}
+            className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">{stat.title}</p>
-                <p className="text-xl sm:text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-xl sm:text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stat.value}</p>
               </div>
-              <div className={`p-2 sm:p-3 rounded-full ${stat.iconBg}`}>
-                <stat.icon className={`w-4 h-4 sm:w-6 sm:h-6 ${stat.iconColor}`} />
+              <div className={`p-2 sm:p-3 rounded-full ${stat.iconBg} group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-4 h-4 sm:w-6 sm:h-6 ${stat.iconColor} group-hover:text-blue-600 transition-colors`} />
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
