@@ -3,7 +3,7 @@ import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: User['role']) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -20,9 +20,9 @@ const demoUsers: User[] = [
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, password: string, role: User['role']): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     // Simulation d'une authentification
-    const foundUser = demoUsers.find(u => u.email === email && u.role === role);
+    const foundUser = demoUsers.find(u => u.email === email);
     if (foundUser && password === 'demo123') {
       setUser(foundUser);
       return true;

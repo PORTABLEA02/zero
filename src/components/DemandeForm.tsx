@@ -146,9 +146,9 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium text-gray-900">Nouvelle Demande</h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900">Nouvelle Demande</h3>
           <button
             onClick={onCancel}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -157,16 +157,16 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="type" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Type de demande
             </label>
             <select
               id="type"
               value={formData.type}
               onChange={(e) => handleChange('type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               {typeOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -177,7 +177,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           </div>
 
           <div>
-            <label htmlFor="beneficiaire" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="beneficiaire" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Bénéficiaire de la demande
             </label>
             <select
@@ -186,7 +186,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
               onChange={(e) => handleBeneficiaireChange(e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.beneficiaireId ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
             >
               <option value="">Sélectionner un bénéficiaire</option>
               {beneficiaires.map(beneficiaire => (
@@ -200,12 +200,12 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
 
           {/* Affichage du bénéficiaire sélectionné */}
           {formData.beneficiaireNom && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
               <div className="flex items-center">
                 <User className="w-5 h-5 text-blue-600 mr-2" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Bénéficiaire sélectionné</p>
-                  <p className="text-sm text-blue-800">
+                  <p className="text-xs sm:text-sm font-medium text-blue-900">Bénéficiaire sélectionné</p>
+                  <p className="text-xs sm:text-sm text-blue-800 truncate">
                     {formData.beneficiaireNom} - {formData.beneficiaireRelation}
                   </p>
                 </div>
@@ -215,7 +215,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
 
           {(formData.type.includes('pret') || formData.type === 'mariage') && (
             <div>
-              <label htmlFor="montant" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="montant" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Montant (FCFA)
               </label>
               <input
@@ -223,7 +223,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                 id="montant"
                 value={formData.montant || ''}
                 onChange={(e) => handleChange('montant', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="0"
                 min="0"
               />
@@ -231,50 +231,50 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           )}
 
           {/* Section Mode de paiement */}
-          <div className="border-t pt-6">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">Informations de paiement</h4>
+          <div className="border-t pt-4 sm:pt-6">
+            <h4 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Informations de paiement</h4>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Mode de paiement
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => handleModePaiementChange('mobile_money')}
-                  className={`flex items-center justify-center p-3 border rounded-lg transition-colors ${
+                  className={`flex items-center justify-center p-2 sm:p-3 border rounded-lg transition-colors text-xs sm:text-sm ${
                     formData.paiement.modePaiement === 'mobile_money'
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <Smartphone className="w-5 h-5 mr-2" />
+                  <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                   Mobile Money
                 </button>
                 
                 <button
                   type="button"
                   onClick={() => handleModePaiementChange('virement_bancaire')}
-                  className={`flex items-center justify-center p-3 border rounded-lg transition-colors ${
+                  className={`flex items-center justify-center p-2 sm:p-3 border rounded-lg transition-colors text-xs sm:text-sm ${
                     formData.paiement.modePaiement === 'virement_bancaire'
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <Building className="w-5 h-5 mr-2" />
+                  <Building className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                   Virement bancaire
                 </button>
                 
                 <button
                   type="button"
                   onClick={() => handleModePaiementChange('cheque')}
-                  className={`flex items-center justify-center p-3 border rounded-lg transition-colors ${
+                  className={`flex items-center justify-center p-2 sm:p-3 border rounded-lg transition-colors text-xs sm:text-sm ${
                     formData.paiement.modePaiement === 'cheque'
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <CreditCard className="w-5 h-5 mr-2" />
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
                   Chèque
                 </button>
               </div>
@@ -282,9 +282,9 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
 
             {/* Champs spécifiques selon le mode de paiement */}
             {formData.paiement.modePaiement === 'mobile_money' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label htmlFor="numeroAbonnement" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="numeroAbonnement" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Numéro d'abonnement
                   </label>
                   <input
@@ -292,12 +292,12 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                     id="numeroAbonnement"
                     value={formData.paiement.numeroAbonnement || ''}
                     onChange={(e) => handlePaiementChange('numeroAbonnement', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="77 123 45 67"
                   />
                 </div>
                 <div>
-                  <label htmlFor="nomAbonne" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="nomAbonne" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Nom de l'abonné
                   </label>
                   <input
@@ -305,7 +305,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                     id="nomAbonne"
                     value={formData.paiement.nomAbonne || ''}
                     onChange={(e) => handlePaiementChange('nomAbonne', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Jean Dupont"
                   />
                 </div>
@@ -313,9 +313,9 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
             )}
 
             {formData.paiement.modePaiement === 'virement_bancaire' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label htmlFor="compteBancaire" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="compteBancaire" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Compte bancaire
                   </label>
                   <input
@@ -323,12 +323,12 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                     id="compteBancaire"
                     value={formData.paiement.compteBancaire || ''}
                     onChange={(e) => handlePaiementChange('compteBancaire', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="SN08 SN01 0152 0000001234567890"
                   />
                 </div>
                 <div>
-                  <label htmlFor="nomCompte" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="nomCompte" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                     Nom du compte
                   </label>
                   <input
@@ -336,7 +336,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                     id="nomCompte"
                     value={formData.paiement.nomCompte || ''}
                     onChange={(e) => handlePaiementChange('nomCompte', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Jean Dupont"
                   />
                 </div>
@@ -344,8 +344,8 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
             )}
 
             {formData.paiement.modePaiement === 'cheque' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-blue-800">
                   Pour le paiement par chèque, vous recevrez les instructions détaillées après validation de votre demande.
                 </p>
               </div>
@@ -353,7 +353,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           </div>
 
           <div>
-            <label htmlFor="pieceJointe" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="pieceJointe" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Pièce jointe (optionnel)
             </label>
             <input
@@ -361,22 +361,22 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
               id="pieceJointe"
               value={formData.pieceJointe || ''}
               onChange={(e) => handleChange('pieceJointe', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               placeholder="Nom du fichier ou description"
             />
           </div>
 
-          <div className="flex space-x-3 pt-4">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
             >
               Soumettre
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors"
+              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
             >
               Annuler
             </button>

@@ -50,60 +50,60 @@ export function Sidebar({ userRole = 'administrateur', activeView = 'dashboard',
   };
 
   return (
-    <div className="flex w-64 flex-col bg-white border-r border-gray-200">
+    <div className="flex w-64 flex-col bg-white border-r border-gray-200 h-full">
       {/* Header */}
       <div className="flex h-16 items-center px-6 bg-blue-600">
         <Shield className="h-8 w-8 text-white mr-3" />
-        <span className="text-xl font-bold text-white">{sidebarTitle}</span>
+        <span className="text-lg sm:text-xl font-bold text-white truncate">{sidebarTitle}</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {menuItems.map((item, index) => (
           <button
             key={index}
             onClick={() => handleMenuClick(item.view)}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
               activeView === item.view
                 ? 'bg-blue-50 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
             <item.icon className={`mr-3 h-5 w-5 ${activeView === item.view ? 'text-blue-600' : 'text-gray-400'}`} />
-            {item.label}
+            <span className="truncate">{item.label}</span>
           </button>
         ))}
       </nav>
 
       {/* User section */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center mb-4">
+      <div className="border-t border-gray-200 p-4 flex-shrink-0">
+        <div className="flex items-center mb-3">
           <div className="flex-shrink-0">
             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
               <User className="h-6 w-6 text-blue-600" />
             </div>
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">
+          <div className="ml-3 min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-900 truncate">
               {userRole === 'membre' ? 'Jean Dupont' : 'Administrateur de MuSAIB'}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 truncate">
               {userRole === 'membre' ? 'membre@musaib.com' : 'admin@musaib.com'}
             </p>
           </div>
         </div>
         
-        <button className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+        <button className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2">
           <User className="mr-3 h-4 w-4" />
-          Mon compte
+          <span className="truncate">Mon compte</span>
         </button>
         
         <button 
           onClick={logout}
-          className="w-full flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
+          className="w-full flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
         >
           <LogOut className="mr-3 h-4 w-4" />
-          Déconnexion
+          <span className="truncate">Déconnexion</span>
         </button>
       </div>
     </div>

@@ -55,10 +55,9 @@ export interface MembreFamilleFormData {
   prenom: string;
   npi: string;
   acteNaissance: string;
-  npi: string;
-  acteNaissance: string;
   dateNaissance: string;
   relation: MembreFamille['relation'];
+  pieceJustificative?: File;
 }
 
 export interface PaiementInfo {

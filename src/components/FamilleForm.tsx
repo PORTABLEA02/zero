@@ -64,9 +64,9 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium text-gray-900">Ajouter un membre de famille</h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900">Ajouter un membre de famille</h3>
           <button
             onClick={onCancel}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -75,16 +75,16 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
-            <label htmlFor="relation" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="relation" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Relation
             </label>
             <select
               id="relation"
               value={formData.relation}
               onChange={(e) => handleChange('relation', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               {relationOptions.map(option => (
                 <option 
@@ -100,7 +100,7 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
           </div>
 
           <div>
-            <label htmlFor="nom" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nom" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Nom
             </label>
             <input
@@ -110,14 +110,14 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
               onChange={(e) => handleChange('nom', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.nom ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
               placeholder="Nom de famille"
             />
             {errors.nom && <p className="text-red-500 text-xs mt-1">{errors.nom}</p>}
           </div>
 
           <div>
-            <label htmlFor="prenom" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="prenom" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Prénom
             </label>
             <input
@@ -127,14 +127,14 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
               onChange={(e) => handleChange('prenom', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.prenom ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
               placeholder="Prénom"
             />
             {errors.prenom && <p className="text-red-500 text-xs mt-1">{errors.prenom}</p>}
           </div>
 
           <div>
-            <label htmlFor="npi" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="npi" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Numéro NPI
             </label>
             <input
@@ -144,14 +144,14 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
               onChange={(e) => handleChange('npi', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.npi ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
               placeholder="Numéro d'identification personnel"
             />
             {errors.npi && <p className="text-red-500 text-xs mt-1">{errors.npi}</p>}
           </div>
 
           <div>
-            <label htmlFor="dateNaissance" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="dateNaissance" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Date de naissance
             </label>
             <input
@@ -161,13 +161,13 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
               onChange={(e) => handleChange('dateNaissance', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.dateNaissance ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
             />
             {errors.dateNaissance && <p className="text-red-500 text-xs mt-1">{errors.dateNaissance}</p>}
           </div>
 
           <div>
-            <label htmlFor="acteNaissance" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="acteNaissance" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Acte de naissance
             </label>
             <input
@@ -177,23 +177,23 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
               onChange={(e) => handleChange('acteNaissance', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.acteNaissance ? 'border-red-500' : 'border-gray-300'
-              }`}
+              } text-sm`}
               placeholder="Référence de l'acte de naissance"
             />
             {errors.acteNaissance && <p className="text-red-500 text-xs mt-1">{errors.acteNaissance}</p>}
           </div>
 
-          <div className="flex space-x-3 pt-4">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
             >
               Ajouter
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors"
+              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
             >
               Annuler
             </button>

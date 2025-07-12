@@ -71,26 +71,26 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
   const demandeSelectionnee = selectedDemande ? mesDemandes.find(d => d.id === selectedDemande) : null;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6">
         {onBack && (
           <button
             onClick={onBack}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
+            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
           >
             ← Retour au dashboard
           </button>
         )}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Historique des demandes</h1>
-        <p className="text-gray-600">Consultez toutes vos demandes passées et leur statut</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Historique des demandes</h1>
+        <p className="text-sm sm:text-base text-gray-600">Consultez toutes vos demandes passées et leur statut</p>
       </div>
 
       {/* Filtres et recherche */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Recherche</label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <input
@@ -98,17 +98,17 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 placeholder="Rechercher..."
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Statut</label>
             <select
               value={filtreStatut}
               onChange={(e) => setFiltreStatut(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="tous">Tous les statuts</option>
               <option value="en_attente">En attente</option>
@@ -119,11 +119,11 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
             <select
               value={filtreType}
               onChange={(e) => setFiltreType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="tous">Tous les types</option>
               <option value="mariage">Allocation Mariage</option>
@@ -134,14 +134,14 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
             </select>
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
             <button
               onClick={() => {
                 setFiltreStatut('tous');
                 setFiltreType('tous');
                 setRecherche('');
               }}
-              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-xs sm:text-sm"
             >
               <Filter className="w-4 h-4 inline mr-2" />
               Réinitialiser
@@ -151,57 +151,57 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
       </div>
 
       {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{mesDemandes.length}</div>
-          <div className="text-sm text-gray-600">Total demandes</div>
+          <div className="text-xl sm:text-2xl font-bold text-gray-900">{mesDemandes.length}</div>
+          <div className="text-xs sm:text-sm text-gray-600">Total demandes</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-2xl font-bold text-yellow-600">{mesDemandes.filter(d => d.statut === 'en_attente').length}</div>
-          <div className="text-sm text-gray-600">En attente</div>
+          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{mesDemandes.filter(d => d.statut === 'en_attente').length}</div>
+          <div className="text-xs sm:text-sm text-gray-600">En attente</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-2xl font-bold text-green-600">{mesDemandes.filter(d => d.statut === 'acceptee' || d.statut === 'validee').length}</div>
-          <div className="text-sm text-gray-600">Approuvées</div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{mesDemandes.filter(d => d.statut === 'acceptee' || d.statut === 'validee').length}</div>
+          <div className="text-xs sm:text-sm text-gray-600">Approuvées</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-2xl font-bold text-red-600">{mesDemandes.filter(d => d.statut === 'rejetee').length}</div>
-          <div className="text-sm text-gray-600">Rejetées</div>
+          <div className="text-xl sm:text-2xl font-bold text-red-600">{mesDemandes.filter(d => d.statut === 'rejetee').length}</div>
+          <div className="text-xs sm:text-sm text-gray-600">Rejetées</div>
         </div>
       </div>
 
       {/* Liste des demandes */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Demandes ({demandesFiltrees.length})
           </h3>
         </div>
         
         {demandesFiltrees.length === 0 ? (
-          <div className="p-8 text-center">
-            <FileText className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune demande trouvée</h3>
-            <p className="text-gray-500">Aucune demande ne correspond à vos critères de recherche</p>
+          <div className="p-6 sm:p-8 text-center">
+            <FileText className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Aucune demande trouvée</h3>
+            <p className="text-sm sm:text-base text-gray-500">Aucune demande ne correspond à vos critères de recherche</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
             {demandesFiltrees.map((demande) => (
-              <div key={demande.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{demande.titre}</h3>
+              <div key={demande.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
+                      <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">{demande.titre}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
                         {getStatutIcon(demande.statut)}
                         <span className="ml-1">{getStatutLabel(demande.statut)}</span>
                       </span>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-2">{getTypeLabel(demande.type)}</p>
-                    <p className="text-sm text-gray-500 mb-3">{demande.description}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{getTypeLabel(demande.type)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-3 line-clamp-2">{demande.description}</p>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
                         Soumise le {new Date(demande.dateSoumission).toLocaleDateString('fr-FR')}
@@ -217,7 +217,7 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
                   
                   <button
                     onClick={() => setSelectedDemande(demande.id)}
-                    className="ml-4 inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="sm:ml-4 inline-flex items-center px-3 py-2 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors w-full sm:w-auto justify-center"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Détails
