@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { 
@@ -53,6 +53,7 @@ interface AdherentFormData {
 export function GestionAdherents() {
   const { membresFamille, supprimerMembreFamille, modifierMembreFamille, canAddMember } = useFamille();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [adherents, setAdherents] = useState<Adherent[]>([
     {
       id: '1',
