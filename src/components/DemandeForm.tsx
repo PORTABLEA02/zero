@@ -15,12 +15,21 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
   
   const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
   
+  // Montants prédéfinis pour chaque type de service
+  const montantsServices = {
+    'mariage': 50000,
+    'naissance': 25000,
+    'deces': 75000,
+    'pret_social': 0, // Montant libre pour prêt social
+    'pret_economique': 200000
+  };
+
   const [formData, setFormData] = useState<DemandeFormData>({
     type: 'mariage',
     beneficiaireId: user?.id || '',
     beneficiaireNom: user?.name || '',
     beneficiaireRelation: 'Adhérent',
-    montant: undefined,
+    montant: montantsServices['mariage'],
     pieceJointe: '',
     paiement: {
       modePaiement: 'mobile_money',
@@ -99,7 +108,17 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
   };
 
   const handleChange = (field: keyof DemandeFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'type') {
+      // Mettre à jour le montant automatiquement selon le type
+      const nouveauMontant = montantsServices[value as keyof typeof montantsServices];
+      setFormData(prev => ({ 
+        ...prev, 
+        [field]: value,
+        montant: nouveauMontant
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -216,17 +235,31 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           {(formData.type.includes('pret') || formData.type === 'mariage') && (
             <div>
               <label htmlFor="montant" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Montant (FCFA)
+                Montant (FCFA) {formData.type !== 'pret_social' && <span className="text-xs text-gray-500">(montant fixe)</span>}
               </label>
               <input
                 type="number"
                 id="montant"
                 value={formData.montant || ''}
                 onChange={(e) => handleChange('montant', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                  formData.type !== 'pret_social' ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
                 placeholder="0"
                 min="0"
+                disabled={formData.type !== 'pret_social'}
+                readOnly={formData.type !== 'pret_social'}
               />
+              {formData.type !== 'pret_social' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Montant fixe défini par la mutuelle pour ce type de service
+                </p>
+              )}
+              {formData.type === 'pret_social' && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Vous pouvez saisir le montant souhaité (maximum 500 000 FCFA)
+                </p>
+              )}
             </div>
           )}
 

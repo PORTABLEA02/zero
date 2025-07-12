@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
-import { Users, Plus, Search, Filter, Edit, Trash2, Mail, Phone, Calendar, MapPin } from 'lucide-react';
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Filter, 
+  Edit, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  MapPin, 
+  UserCheck, 
+  UserX, 
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+  User,
+  Baby,
+  Heart,
+  UserPlus
+} from 'lucide-react';
+import { useFamille } from '../../contexts/FamilleContext';
 
 interface Adherent {
   id: string;
@@ -14,7 +34,8 @@ interface Adherent {
 }
 
 export function GestionAdherents() {
-  const [adherents] = useState<Adherent[]>([
+  const { membresFamille } = useFamille();
+  const [adherents, setAdherents] = useState<Adherent[]>([
     {
       id: '1',
       nom: 'Dupont',
@@ -55,7 +76,7 @@ export function GestionAdherents() {
       email: 'fatou.ndiaye@email.com',
       telephone: '+221 77 321 65 98',
       dateAdhesion: '2023-08-05',
-      statut: 'actif',
+      statut: 'suspendu',
       service: 'Marketing',
       adresse: 'Kaolack, Sénégal'
     }
@@ -64,6 +85,12 @@ export function GestionAdherents() {
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
+  const [showConfirmModal, setShowConfirmModal] = useState<{
+    show: boolean;
+    action: 'activer' | 'suspendre' | 'reinitialiser' | null;
+    adherent: Adherent | null;
+  }>({ show: false, action: null, adherent: null });
 
   const adherentsFiltres = adherents.filter(adherent => {
     const matchRecherche = 
@@ -75,6 +102,77 @@ export function GestionAdherents() {
     
     return matchRecherche && matchStatut;
   });
+
+  const getMembresFamilleByAdherent = (adherentId: string) => {
+    return membresFamille.filter(membre => membre.membreId === adherentId);
+  };
+
+  const toggleExpanded = (adherentId: string) => {
+    const newExpanded = new Set(expandedAdherents);
+    if (newExpanded.has(adherentId)) {
+      newExpanded.delete(adherentId);
+    } else {
+      newExpanded.add(adherentId);
+    }
+    setExpandedAdherents(newExpanded);
+  };
+
+  const getRelationIcon = (relation: string) => {
+    switch (relation) {
+      case 'epoux':
+      case 'epouse':
+        return <Heart className="w-4 h-4 text-pink-500" />;
+      case 'enfant':
+        return <Baby className="w-4 h-4 text-blue-500" />;
+      case 'pere':
+      case 'mere':
+        return <User className="w-4 h-4 text-green-500" />;
+      case 'beau_pere':
+      case 'belle_mere':
+        return <UserPlus className="w-4 h-4 text-purple-500" />;
+      default:
+        return <User className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getRelationLabel = (relation: string) => {
+    const labels = {
+      'epoux': 'Époux',
+      'epouse': 'Épouse',
+      'enfant': 'Enfant',
+      'pere': 'Père',
+      'mere': 'Mère',
+      'beau_pere': 'Beau-père',
+      'belle_mere': 'Belle-mère'
+    };
+    return labels[relation as keyof typeof labels] || relation;
+  };
+
+  const getRelationColor = (relation: string) => {
+    const colors = {
+      'epoux': 'bg-pink-100 text-pink-800',
+      'epouse': 'bg-pink-100 text-pink-800',
+      'enfant': 'bg-blue-100 text-blue-800',
+      'pere': 'bg-green-100 text-green-800',
+      'mere': 'bg-green-100 text-green-800',
+      'beau_pere': 'bg-purple-100 text-purple-800',
+      'belle_mere': 'bg-purple-100 text-purple-800'
+    };
+    return colors[relation as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const calculateAge = (dateNaissance: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateNaissance);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
 
   const getStatutColor = (statut: string) => {
     switch (statut) {
@@ -94,11 +192,63 @@ export function GestionAdherents() {
     }
   };
 
+  const handleActiverAdherent = (adherentId: string) => {
+    setAdherents(prev => prev.map(adherent => 
+      adherent.id === adherentId 
+        ? { ...adherent, statut: 'actif' as const }
+        : adherent
+    ));
+  };
+
+  const handleSuspendreAdherent = (adherentId: string) => {
+    setAdherents(prev => prev.map(adherent => 
+      adherent.id === adherentId 
+        ? { ...adherent, statut: 'suspendu' as const }
+        : adherent
+    ));
+  };
+
+  const handleReinitialiserAdherent = (adherentId: string) => {
+    console.log(`Réinitialisation du mot de passe pour l'adhérent ${adherentId}`);
+  };
+
+  const confirmAction = (action: 'activer' | 'suspendre' | 'reinitialiser', adherent: Adherent) => {
+    setShowConfirmModal({ show: true, action, adherent });
+  };
+
+  const executeAction = () => {
+    if (!showConfirmModal.adherent || !showConfirmModal.action) return;
+
+    switch (showConfirmModal.action) {
+      case 'activer':
+        handleActiverAdherent(showConfirmModal.adherent.id);
+        break;
+      case 'suspendre':
+        handleSuspendreAdherent(showConfirmModal.adherent.id);
+        break;
+      case 'reinitialiser':
+        handleReinitialiserAdherent(showConfirmModal.adherent.id);
+        break;
+    }
+
+    setShowConfirmModal({ show: false, action: null, adherent: null });
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'activer': return 'activer';
+      case 'suspendre': return 'suspendre';
+      case 'reinitialiser': return 'réinitialiser le mot de passe de';
+      default: return action;
+    }
+  };
+
   const stats = {
     total: adherents.length,
     actifs: adherents.filter(a => a.statut === 'actif').length,
     inactifs: adherents.filter(a => a.statut === 'inactif').length,
-    suspendus: adherents.filter(a => a.statut === 'suspendu').length
+    suspendus: adherents.filter(a => a.statut === 'suspendu').length,
+    totalMembres: membresFamille.length
   };
 
   return (
@@ -107,7 +257,9 @@ export function GestionAdherents() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestion des adhérents</h1>
-          <p className="text-gray-600">Gérez les membres de la mutuelle ({stats.total} adhérents)</p>
+          <p className="text-gray-600">
+            Gérez les membres de la mutuelle ({stats.total} adhérents, {stats.totalMembres} membres de famille)
+          </p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
@@ -119,7 +271,7 @@ export function GestionAdherents() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -167,6 +319,18 @@ export function GestionAdherents() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Membres famille</p>
+              <p className="text-3xl font-bold text-purple-600">{stats.totalMembres}</p>
+            </div>
+            <div className="p-3 rounded-full bg-purple-100">
+              <User className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filtres et recherche */}
@@ -202,99 +366,190 @@ export function GestionAdherents() {
         </div>
       </div>
 
-      {/* Liste des adhérents */}
+      {/* Liste des adhérents avec structure arborescente */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
-            Adhérents ({adherentsFiltres.length})
+            Adhérents et leurs familles ({adherentsFiltres.length})
           </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Cliquez sur un adhérent pour voir les membres de sa famille
+          </p>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Adhérent
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date d'adhésion
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {adherentsFiltres.map((adherent) => (
-                <tr key={adherent.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">
-                            {adherent.prenom.charAt(0)}{adherent.nom.charAt(0)}
-                          </span>
+        <div className="divide-y divide-gray-200">
+          {adherentsFiltres.map((adherent) => {
+            const membresFamilleAdherent = getMembresFamilleByAdherent(adherent.id);
+            const isExpanded = expandedAdherents.has(adherent.id);
+            
+            return (
+              <div key={adherent.id}>
+                {/* Adhérent principal */}
+                <div className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center flex-1">
+                      {/* Bouton d'expansion */}
+                      <button
+                        onClick={() => toggleExpanded(adherent.id)}
+                        className="mr-3 p-1 hover:bg-gray-200 rounded transition-colors"
+                      >
+                        {membresFamilleAdherent.length > 0 ? (
+                          isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                          )
+                        ) : (
+                          <div className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* Informations de l'adhérent */}
+                      <div className="flex items-center flex-1">
+                        <div className="flex-shrink-0 h-12 w-12">
+                          <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                            <span className="text-sm font-bold text-blue-600">
+                              {adherent.prenom.charAt(0)}{adherent.nom.charAt(0)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="ml-4 flex-1">
+                          <div className="flex items-center space-x-3 mb-1">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              {adherent.prenom} {adherent.nom}
+                            </h3>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatutColor(adherent.statut)}`}>
+                              {getStatutLabel(adherent.statut)}
+                            </span>
+                            {membresFamilleAdherent.length > 0 && (
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                <Users className="w-3 h-3 mr-1" />
+                                {membresFamilleAdherent.length} membre{membresFamilleAdherent.length > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Mail className="w-3 h-3 mr-1" />
+                                {adherent.email}
+                              </div>
+                              <div className="flex items-center">
+                                <Phone className="w-3 h-3 mr-1" />
+                                {adherent.telephone}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-1">Service: {adherent.service}</div>
+                              <div className="flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {adherent.adresse}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Adhésion: {new Date(adherent.dateAdhesion).toLocaleDateString('fr-FR')}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {adherent.prenom} {adherent.nom}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {adherent.adresse}
-                        </div>
-                      </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center mb-1">
-                      <Mail className="w-3 h-3 mr-1" />
-                      {adherent.email}
-                    </div>
-                    <div className="text-sm text-gray-500 flex items-center">
-                      <Phone className="w-3 h-3 mr-1" />
-                      {adherent.telephone}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{adherent.service}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatutColor(adherent.statut)}`}>
-                      {getStatutLabel(adherent.statut)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {new Date(adherent.dateAdhesion).toLocaleDateString('fr-FR')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
+
+                    {/* Actions */}
+                    <div className="ml-6 flex space-x-2">
+                      <button 
+                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded transition-colors"
+                        title="Modifier"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="w-4 h-4" />
+                      
+                      {adherent.statut !== 'actif' && (
+                        <button 
+                          onClick={() => confirmAction('activer', adherent)}
+                          className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded transition-colors"
+                          title="Activer"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      {adherent.statut === 'actif' && (
+                        <button 
+                          onClick={() => confirmAction('suspendre', adherent)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
+                          title="Suspendre"
+                        >
+                          <UserX className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => confirmAction('reinitialiser', adherent)}
+                        className="text-orange-600 hover:text-orange-900 p-2 hover:bg-orange-50 rounded transition-colors"
+                        title="Réinitialiser le mot de passe"
+                      >
+                        <RotateCcw className="w-4 h-4" />
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+                {/* Membres de famille (affichés si développé) */}
+                {isExpanded && membresFamilleAdherent.length > 0 && (
+                  <div className="bg-gray-50 border-t border-gray-200">
+                    <div className="px-6 py-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                        <Users className="w-4 h-4 mr-2" />
+                        Membres de famille ({membresFamilleAdherent.length})
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {membresFamilleAdherent.map((membre) => (
+                          <div key={membre.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                                  {getRelationIcon(membre.relation)}
+                                </div>
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-900">
+                                    {membre.prenom} {membre.nom}
+                                  </h5>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRelationColor(membre.relation)}`}>
+                                    {getRelationLabel(membre.relation)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs text-gray-600 space-y-1">
+                              <div className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {new Date(membre.dateNaissance).toLocaleDateString('fr-FR')} ({calculateAge(membre.dateNaissance)} ans)
+                              </div>
+                              <div>
+                                <span className="font-medium">NPI:</span> {membre.npi}
+                              </div>
+                              <div>
+                                <span className="font-medium">Acte:</span> {membre.acteNaissance}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Ajouté le {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -303,6 +558,52 @@ export function GestionAdherents() {
           <Users className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun adhérent trouvé</h3>
           <p className="text-gray-500">Aucun adhérent ne correspond à vos critères de recherche</p>
+        </div>
+      )}
+
+      {/* Modal de confirmation */}
+      {showConfirmModal.show && showConfirmModal.adherent && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirmer l'action
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir {getActionLabel(showConfirmModal.action || '')} l'adhérent{' '}
+              <span className="font-medium">
+                {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
+              </span> ?
+            </p>
+            
+            {showConfirmModal.action === 'reinitialiser' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800">
+                  Un nouveau mot de passe temporaire sera envoyé par email à l'adhérent.
+                </p>
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <button
+                onClick={executeAction}
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md text-white transition-colors ${
+                  showConfirmModal.action === 'activer' 
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : showConfirmModal.action === 'suspendre'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-orange-600 hover:bg-orange-700'
+                }`}
+              >
+                Confirmer
+              </button>
+              <button
+                onClick={() => setShowConfirmModal({ show: false, action: null, adherent: null })}
+                className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
