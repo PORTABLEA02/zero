@@ -27,8 +27,8 @@ export function LoginForm() {
   };
 
   const demoAccounts = [
-    { role: 'membre', email: 'membre@demo.com', icon: Users, color: 'blue', label: 'Membre' },
-    { role: 'controleur', email: 'controleur@demo.com', icon: Shield, color: 'orange', label: 'Contrôleur' },
+    { role: 'membre', email: 'membre@demo.com', icon: Users, color: 'blue', label: 'Membre', note: '' },
+    { role: 'controleur', email: 'controleur@demo.com', icon: Shield, color: 'orange', label: 'Contrôleur', note: '(Mot de passe à changer)' },
     { role: 'administrateur', email: 'admin@musaib.com', icon: UserCheck, color: 'purple', label: 'Administrateur' }
   ];
 
@@ -108,7 +108,7 @@ export function LoginForm() {
             </div>
 
             <div className="mt-3 sm:mt-4 grid grid-cols-1 gap-2">
-              {demoAccounts.map(({ role: demoRole, email: demoEmail, icon: Icon, color, label }) => (
+              {demoAccounts.map(({ role: demoRole, email: demoEmail, icon: Icon, color, label, note }) => (
                 <button
                   key={demoRole}
                   onClick={() => {
@@ -118,9 +118,12 @@ export function LoginForm() {
                   className={`flex items-center justify-center px-2 sm:px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors`}
                 >
                   <Icon className={`w-4 h-4 mr-2 text-${color}-600`} />
-                  <span className="truncate">
-                    <span className="hidden sm:inline">{label} - </span>
-                    {demoEmail}
+                  <span className="truncate flex flex-col sm:flex-row sm:items-center">
+                    <span>
+                      <span className="hidden sm:inline">{label} - </span>
+                      {demoEmail}
+                    </span>
+                    {note && <span className="text-xs text-orange-600 sm:ml-1">{note}</span>}
                   </span>
                 </button>
               ))}

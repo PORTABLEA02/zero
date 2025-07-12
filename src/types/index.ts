@@ -3,6 +3,9 @@ export interface User {
   name: string;
   email: string;
   role: 'membre' | 'controleur' | 'administrateur';
+  mustChangePassword?: boolean;
+  isFirstLogin?: boolean;
+  lastPasswordChange?: string;
 }
 
 export interface Demande {

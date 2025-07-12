@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, 
@@ -90,7 +90,7 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
           </div>
           <div className="ml-3 min-w-0 flex-1">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {userRole === 'membre' ? 'Jean Dupont' : 'Administrateur de MuSAIB'}
+              {userRole === 'membre' ? 'Jean Dupont' : 'Administrateur MuSAIB'}
             </p>
             <p className="text-xs text-gray-500 truncate">
               {userRole === 'membre' ? 'membre@musaib.com' : 'admin@musaib.com'}
@@ -98,10 +98,13 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
           </div>
         </div>
         
-        <button className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2">
+        <Link 
+          to={userRole === 'administrateur' ? '/admin/compte' : '/membre/compte'}
+          className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2"
+        >
           <User className="mr-3 h-4 w-4" />
           <span className="truncate">Mon compte</span>
-        </button>
+        </Link>
         
         <button 
           onClick={logout}

@@ -209,7 +209,14 @@ export function GestionAdherents() {
   };
 
   const handleReinitialiserAdherent = (adherentId: string) => {
+    // Simulation de la réinitialisation du mot de passe
     console.log(`Réinitialisation du mot de passe pour l'adhérent ${adherentId}`);
+    
+    // En réalité, ceci enverrait une requête à l'API pour réinitialiser le mot de passe
+    // et marquerait l'utilisateur comme devant changer son mot de passe
+    setTimeout(() => {
+      alert(`Le mot de passe de l'adhérent a été réinitialisé. Un email avec les instructions a été envoyé.`);
+    }, 500);
   };
 
   const confirmAction = (action: 'activer' | 'suspendre' | 'reinitialiser', adherent: Adherent) => {

@@ -15,6 +15,9 @@ import { ImportationUtilisateurs } from './components/admin/ImportationUtilisate
 import { GestionDemandes } from './components/admin/GestionDemandes';
 import { GestionServices } from './components/admin/GestionServices';
 import { LogsAudit } from './components/admin/LogsAudit';
+import { MonCompte as AdminMonCompte } from './components/admin/MonCompte';
+import { MonCompte } from './components/membre/MonCompte';
+import { ForcePasswordChange } from './components/ForcePasswordChange';
 
 // Fonction de logging des erreurs personnalisée
 const handleGlobalError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -39,10 +42,15 @@ const handleGlobalError = (error: Error, errorInfo: React.ErrorInfo) => {
 
 // Composant pour protéger les routes qui nécessitent une authentification
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  
+  // Vérifier si l'utilisateur doit changer son mot de passe
+  if (user?.mustChangePassword || user?.isFirstLogin) {
+    return <ForcePasswordChange />;
   }
   
   return <>{children}</>;
@@ -133,6 +141,14 @@ function AppContent() {
               </MemberRoute>
             } 
           />
+          <Route 
+            path="compte" 
+            element={
+              <MemberRoute>
+                <MonCompte />
+              </MemberRoute>
+            } 
+          />
         </Route>
         
         {/* Routes pour l'administration */}
@@ -174,6 +190,14 @@ function AppContent() {
             element={
               <AdminRoute>
                 <LogsAudit />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="compte" 
+            element={
+              <AdminRoute>
+                <AdminMonCompte />
               </AdminRoute>
             } 
           />

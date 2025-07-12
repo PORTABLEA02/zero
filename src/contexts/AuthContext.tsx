@@ -6,15 +6,40 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  updatePassword: (newPassword: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Utilisateurs de démonstration
 const demoUsers: User[] = [
-  { id: '1', name: 'Jean Dupont', email: 'membre@demo.com', role: 'membre' },
-  { id: '2', name: 'Marie Martin', email: 'controleur@demo.com', role: 'controleur' },
-  { id: '3', name: 'Administrateur de MuSAIB', email: 'admin@musaib.com', role: 'administrateur' },
+  { 
+    id: '1', 
+    name: 'Jean Dupont', 
+    email: 'membre@demo.com', 
+    role: 'membre',
+    mustChangePassword: false,
+    isFirstLogin: false,
+    lastPasswordChange: '2024-01-01'
+  },
+  { 
+    id: '2', 
+    name: 'Marie Martin', 
+    email: 'controleur@demo.com', 
+    role: 'controleur',
+    mustChangePassword: true,
+    isFirstLogin: false,
+    lastPasswordChange: '2023-12-01'
+  },
+  { 
+    id: '3', 
+    name: 'Administrateur de MuSAIB', 
+    email: 'admin@musaib.com', 
+    role: 'administrateur',
+    mustChangePassword: false,
+    isFirstLogin: false,
+    lastPasswordChange: '2024-01-15'
+  },
 ];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,10 +59,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updatePassword = (newPassword: string) => {
+    if (user) {
+      setUser({
+        ...user,
+        mustChangePassword: false,
+        isFirstLogin: false,
+        lastPasswordChange: new Date().toISOString()
+      });
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, updatePassword }}>
       {children}
     </AuthContext.Provider>
   );
