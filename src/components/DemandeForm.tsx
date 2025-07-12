@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DemandeFormData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemandes } from '../contexts/DemandeContext';
 import { useFamille } from '../contexts/FamilleContext';
 import { X, CreditCard, Building, Smartphone, User } from 'lucide-react';
 
-interface DemandeFormProps {
-  onSubmit: (data: DemandeFormData) => void;
-  onCancel: () => void;
-}
 
-export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
+export function DemandeForm() {
   const { user } = useAuth();
+  const { createDemande } = useDemandes();
   const { getMembresFamilleByMembre } = useFamille();
+  const navigate = useNavigate();
+  const [showForm, setShowForm] = useState(false);
   
   const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
   
@@ -21,7 +22,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
     'naissance': 25000,
     'deces': 75000,
     'pret_social': 0, // Montant libre pour prêt social
-    'pret_economique': 200000
+    'pret_economique': 0 // Montant libre pour prêt économique
   };
 
   const [formData, setFormData] = useState<DemandeFormData>({
@@ -40,6 +41,16 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
 
   const [errors, setErrors] = useState<Partial<DemandeFormData>>({});
 
+  const handleSubmit = (data: DemandeFormData) => {
+    if (user) {
+      createDemande(data, user.id, user.name);
+      navigate('/dashboard');
+    }
+  };
+
+  const handleCancel = () => {
+    navigate('/dashboard');
+  };
   const getRelationLabel = (relation: string) => {
     const labels = {
       'epoux': 'Époux',
@@ -75,7 +86,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
     }))
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -104,7 +115,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
       return;
     }
 
-    onSubmit(formData);
+    handleSubmit(formData);
   };
 
   const handleChange = (field: keyof DemandeFormData, value: string | number) => {
@@ -163,20 +174,48 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
     setFormData(prev => ({ ...prev, paiement: defaultPaiement }));
   };
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-base sm:text-lg font-medium text-gray-900">Nouvelle Demande</h3>
+  if (!showForm) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="mb-6">
           <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => navigate('/dashboard')}
+            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
           >
-            <X className="w-6 h-6" />
+            ← Retour au dashboard
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Demande de service</h1>
+          <p className="text-sm sm:text-base text-gray-600">Créez une nouvelle demande de service</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <User className="w-5 h-5 mr-2" />
+            Nouvelle demande
           </button>
         </div>
+      </div>
+    );
+  }
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+  return (
+    <div className="p-4 sm:p-6">
+      <div className="mb-6">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
+        >
+          ← Retour au dashboard
+        </button>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Nouvelle Demande</h1>
+        <p className="text-sm sm:text-base text-gray-600">Remplissez le formulaire pour soumettre votre demande</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-6">
           <div>
             <label htmlFor="type" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Type de demande
@@ -235,7 +274,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
           {(formData.type.includes('pret') || formData.type === 'mariage') && (
             <div>
               <label htmlFor="montant" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Montant (FCFA) {formData.type !== 'pret_social' && <span className="text-xs text-gray-500">(montant fixe)</span>}
+                Montant (FCFA) {formData.type !== 'pret_social' && formData.type !== 'pret_economique' && <span className="text-xs text-gray-500">(montant fixe)</span>}
               </label>
               <input
                 type="number"
@@ -243,16 +282,22 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
                 value={formData.montant || ''}
                 onChange={(e) => handleChange('montant', parseInt(e.target.value) || 0)}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-                  formData.type !== 'pret_social' ? 'bg-gray-100 cursor-not-allowed' : ''
+                  formData.type !== 'pret_social' && formData.type !== 'pret_economique' ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
                 placeholder="0"
                 min="0"
-                disabled={formData.type !== 'pret_social'}
-                readOnly={formData.type !== 'pret_social'}
+                max={formData.type === 'pret_economique' ? '2000000' : undefined}
+                disabled={formData.type !== 'pret_social' && formData.type !== 'pret_economique'}
+                readOnly={formData.type !== 'pret_social' && formData.type !== 'pret_economique'}
               />
-              {formData.type !== 'pret_social' && (
+              {formData.type !== 'pret_social' && formData.type !== 'pret_economique' && (
                 <p className="text-xs text-gray-500 mt-1">
                   Montant fixe défini par la mutuelle pour ce type de service
+                </p>
+              )}
+              {formData.type === 'pret_economique' && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Vous pouvez saisir le montant souhaité (maximum 2 000 000 FCFA)
                 </p>
               )}
               {formData.type === 'pret_social' && (
@@ -408,7 +453,7 @@ export function DemandeForm({ onSubmit, onCancel }: DemandeFormProps) {
             </button>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={handleCancel}
               className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
             >
               Annuler

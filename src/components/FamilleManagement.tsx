@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamille } from '../contexts/FamilleContext';
 import { FamilleForm } from './FamilleForm';
 import { MembreFamilleFormData } from '../types';
 import { Plus, User, Calendar, Trash2, Users } from 'lucide-react';
 
-interface FamilleManagementProps {
-  onBack?: () => void;
-}
 
-export function FamilleManagement({ onBack }: FamilleManagementProps) {
+export function FamilleManagement() {
   const { user } = useAuth();
   const { getMembresFamilleByMembre, ajouterMembreFamille, supprimerMembreFamille, canAddMember } = useFamille();
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
   
   const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
 
@@ -71,14 +70,12 @@ export function FamilleManagement({ onBack }: FamilleManagementProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div>
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
-            >
-              ← Retour au dashboard
-            </button>
-          )}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
+          >
+            ← Retour au dashboard
+          </button>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion de la famille</h1>
           <p className="text-sm sm:text-base text-gray-600">Gérez les membres de votre famille ({membresFamille.length} membre(s))</p>
         </div>

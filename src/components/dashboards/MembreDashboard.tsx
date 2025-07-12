@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { useFamille } from '../../contexts/FamilleContext';
+import { TestErrorComponent } from '../TestErrorComponent';
 import { 
   Plus, 
   FileText, 
@@ -14,37 +16,18 @@ import {
   History,
   UserPlus
 } from 'lucide-react';
-import { DemandeForm } from '../DemandeForm';
-import { FamilleManagement } from '../FamilleManagement';
-import { HistoriqueDemandes } from '../HistoriqueDemandes';
 import { DemandeFormData } from '../../types';
 
-interface MembreDashboardProps {
-  activeView?: string;
-  onViewChange?: (view: string) => void;
-}
 
-export function MembreDashboard({ activeView = 'dashboard', onViewChange }: MembreDashboardProps) {
+export function MembreDashboard() {
   const { user } = useAuth();
-  const { createDemande, getDemandesByRole } = useDemandes();
+  const { getDemandesByRole } = useDemandes();
   const { getMembresFamilleByMembre } = useFamille();
-  const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
   
   const mesDemandes = getDemandesByRole('membre', user?.id);
   const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
 
-  const handleCreateDemande = (data: DemandeFormData) => {
-    if (user) {
-      createDemande(data, user.id, user.name);
-      setShowForm(false);
-    }
-  };
-
-  const setActiveView = (view: string) => {
-    if (onViewChange) {
-      onViewChange(view);
-    }
-  };
 
   const stats = {
     soumises: mesDemandes.length,
@@ -90,66 +73,24 @@ export function MembreDashboard({ activeView = 'dashboard', onViewChange }: Memb
       description: 'Soumettre une demande de service',
       icon: FileText,
       iconColor: 'text-blue-600',
-      action: () => setActiveView('demande')
+      action: () => navigate('/membre/demande')
     },
     {
       title: 'Gérer la famille',
       description: 'Ajouter ou modifier les membres',
       icon: UserPlus,
       iconColor: 'text-green-600',
-      action: () => setActiveView('famille')
+      action: () => navigate('/membre/famille')
     },
     {
       title: 'Voir l\'historique',
       description: 'Consulter vos demandes passées',
       icon: History,
       iconColor: 'text-purple-600',
-      action: () => setActiveView('historique')
+      action: () => navigate('/membre/historique')
     }
   ];
 
-  // Rendu conditionnel selon la vue active
-  if (activeView === 'famille') {
-    return <FamilleManagement onBack={() => setActiveView('dashboard')} />;
-  }
-
-  if (activeView === 'historique') {
-    return <HistoriqueDemandes onBack={() => setActiveView('dashboard')} />;
-  }
-
-  if (activeView === 'demande') {
-    return (
-      <div className="p-4 sm:p-6">
-        <div className="mb-6">
-          <button
-            onClick={() => setActiveView('dashboard')}
-            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
-          >
-            ← Retour au dashboard
-          </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Demande de service</h1>
-          <p className="text-sm sm:text-base text-gray-600">Créez une nouvelle demande de service</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Nouvelle demande
-          </button>
-        </div>
-
-        {showForm && (
-          <DemandeForm
-            onSubmit={handleCreateDemande}
-            onCancel={() => setShowForm(false)}
-          />
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -183,7 +124,7 @@ export function MembreDashboard({ activeView = 'dashboard', onViewChange }: Memb
           <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">Demandes récentes</h3>
             <button 
-              onClick={() => setActiveView('historique')}
+              onClick={() => navigate('/membre/historique')}
               className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium"
             >
               Voir tout
@@ -195,7 +136,7 @@ export function MembreDashboard({ activeView = 'dashboard', onViewChange }: Memb
                 <FileText className="w-8 h-8 sm:w-12 sm:h-12 mx-auto text-gray-300 mb-4" />
                 <p className="text-sm sm:text-base text-gray-500 mb-4">Aucune demande trouvée</p>
                 <button
-                  onClick={() => setActiveView('demande')}
+                  onClick={() => navigate('/membre/demande')}
                   className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -266,6 +207,9 @@ export function MembreDashboard({ activeView = 'dashboard', onViewChange }: Memb
           </div>
         </div>
       </div>
+      
+      {/* Composant de test d'erreurs (dev uniquement) */}
+      <TestErrorComponent />
     </div>
   );
 }

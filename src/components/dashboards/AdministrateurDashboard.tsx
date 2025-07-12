@@ -10,35 +10,12 @@ import {
   BarChart3,
   Activity
 } from 'lucide-react';
-import { GestionAdherents } from '../admin/GestionAdherents';
-import { ImportationUtilisateurs } from '../admin/ImportationUtilisateurs';
-import { GestionDemandes } from '../admin/GestionDemandes';
-import { GestionServices } from '../admin/GestionServices';
-import { LogsAudit } from '../admin/LogsAudit';
 
-interface AdministrateurDashboardProps {
-  activeView?: string;
-}
 
-export function AdministrateurDashboard({ activeView = 'dashboard' }: AdministrateurDashboardProps) {
+export function AdministrateurDashboard() {
   const { user } = useAuth();
   const { demandes } = useDemandes();
 
-  // Rendu conditionnel selon la vue active
-  switch (activeView) {
-    case 'adherents':
-      return <GestionAdherents />;
-    case 'import':
-      return <ImportationUtilisateurs />;
-    case 'demandes':
-      return <GestionDemandes />;
-    case 'services':
-      return <GestionServices />;
-    case 'logs':
-      return <LogsAudit />;
-    default:
-      break;
-  }
 
   // Calcul des statistiques
   const totalAdherents = 4; // Données simulées

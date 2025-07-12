@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, 
@@ -17,38 +18,42 @@ import {
 
 interface SidebarProps {
   userRole?: string;
-  activeView?: string;
-  onViewChange?: (view: string) => void;
 }
 
-export function Sidebar({ userRole = 'administrateur', activeView = 'dashboard', onViewChange }: SidebarProps) {
+export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const adminMenuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
-    { icon: Users, label: 'Gestion des adhérents', view: 'adherents' },
-    { icon: Upload, label: 'Importation utilisateurs', view: 'import' },
-    { icon: FileText, label: 'Gestion des demandes', view: 'demandes' },
-    { icon: Settings, label: 'Gestion des services', view: 'services' },
-    { icon: FileBarChart, label: 'Logs & Audit', view: 'logs' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Users, label: 'Gestion des adhérents', path: '/admin/adherents' },
+    { icon: Upload, label: 'Importation utilisateurs', path: '/admin/import' },
+    { icon: FileText, label: 'Gestion des demandes', path: '/admin/demandes' },
+    { icon: Settings, label: 'Gestion des services', path: '/admin/services' },
+    { icon: FileBarChart, label: 'Logs & Audit', path: '/admin/logs' },
   ];
 
   const memberMenuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
-    { icon: UserPlus, label: 'Informations familiales', view: 'famille' },
-    { icon: FileText, label: 'Demande de service', view: 'demande' },
-    { icon: History, label: 'Historique', view: 'historique' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: UserPlus, label: 'Informations familiales', path: '/membre/famille' },
+    { icon: FileText, label: 'Demande de service', path: '/membre/demande' },
+    { icon: History, label: 'Historique', path: '/membre/historique' },
   ];
 
   const menuItems = userRole === 'membre' ? memberMenuItems : adminMenuItems;
   const sidebarTitle = userRole === 'membre' ? 'MuSAIB' : 'MuSAIB Admin';
 
-  const handleMenuClick = (view: string) => {
-    if (onViewChange) {
-      onViewChange(view);
-    }
+  const handleMenuClick = (path: string) => {
+    navigate(path);
   };
 
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard' || location.pathname === '/';
+    }
+    return location.pathname === path;
+  };
   return (
     <div className="flex w-64 flex-col bg-white border-r border-gray-200 h-full">
       {/* Header */}
@@ -62,14 +67,14 @@ export function Sidebar({ userRole = 'administrateur', activeView = 'dashboard',
         {menuItems.map((item, index) => (
           <button
             key={index}
-            onClick={() => handleMenuClick(item.view)}
+            onClick={() => handleMenuClick(item.path)}
             className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
-              activeView === item.view
+              isActive(item.path)
                 ? 'bg-blue-50 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            <item.icon className={`mr-3 h-5 w-5 ${activeView === item.view ? 'text-blue-600' : 'text-gray-400'}`} />
+            <item.icon className={`mr-3 h-5 w-5 ${isActive(item.path) ? 'text-blue-600' : 'text-gray-400'}`} />
             <span className="truncate">{item.label}</span>
           </button>
         ))}

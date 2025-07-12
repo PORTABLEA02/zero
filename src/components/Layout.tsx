@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ErrorBoundary } from './ErrorBoundary';
 import { LogOut, Users, Shield, UserCheck, Menu, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 
 interface LayoutProps {
-  children: React.ReactNode;
-  activeView?: string;
-  onViewChange?: (view: string) => void;
+  children?: React.ReactNode;
 }
 
-export function Layout({ children, activeView, onViewChange }: LayoutProps) {
+export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -37,7 +37,7 @@ export function Layout({ children, activeView, onViewChange }: LayoutProps) {
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar pour desktop */}
         <div className="hidden md:flex md:flex-shrink-0">
-          <Sidebar userRole={user.role} activeView={activeView} onViewChange={onViewChange} />
+          <Sidebar userRole={user.role} />
         </div>
 
         {/* Sidebar mobile */}
@@ -54,7 +54,7 @@ export function Layout({ children, activeView, onViewChange }: LayoutProps) {
                   <X className="h-6 w-6 text-white" />
                 </button>
               </div>
-              <Sidebar userRole={user.role} activeView={activeView} onViewChange={onViewChange} />
+              <Sidebar userRole={user.role} />
             </div>
           </div>
         )}
@@ -80,7 +80,26 @@ export function Layout({ children, activeView, onViewChange }: LayoutProps) {
 
           {/* Contenu */}
           <main className="flex-1 overflow-y-auto bg-gray-50">
-            {children}
+            <ErrorBoundary
+              fallback={
+                <div className="p-6 text-center">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    Erreur dans cette section
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    Une erreur s'est produite dans cette partie de l'application.
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Recharger
+                  </button>
+                </div>
+              }
+            >
+              {children || <Outlet />}
+            </ErrorBoundary>
           </main>
         </div>
       </div>
@@ -124,7 +143,26 @@ export function Layout({ children, activeView, onViewChange }: LayoutProps) {
       </header>
       
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-        {children}
+        <ErrorBoundary
+          fallback={
+            <div className="text-center py-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Erreur dans cette section
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Une erreur s'est produite dans cette partie de l'application.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Recharger
+              </button>
+            </div>
+          }
+        >
+          {children || <Outlet />}
+        </ErrorBoundary>
       </main>
     </div>
   );

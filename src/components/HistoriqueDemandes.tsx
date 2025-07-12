@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemandes } from '../contexts/DemandeContext';
 import { Calendar, DollarSign, FileText, Filter, Search, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 
-interface HistoriqueDemandesProps {
-  onBack?: () => void;
-}
 
-export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
+export function HistoriqueDemandes() {
   const { user } = useAuth();
   const { getDemandesByRole } = useDemandes();
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [filtreType, setFiltreType] = useState<string>('tous');
   const [recherche, setRecherche] = useState('');
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const mesDemandes = user ? getDemandesByRole('membre', user.id) : [];
 
@@ -74,14 +73,12 @@ export function HistoriqueDemandes({ onBack }: HistoriqueDemandesProps) {
     <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
-          >
-            ← Retour au dashboard
-          </button>
-        )}
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
+        >
+          ← Retour au dashboard
+        </button>
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Historique des demandes</h1>
         <p className="text-sm sm:text-base text-gray-600">Consultez toutes vos demandes passées et leur statut</p>
       </div>
