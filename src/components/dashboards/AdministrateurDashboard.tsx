@@ -15,19 +15,54 @@ import {
 
 export function AdministrateurDashboard() {
   const { user } = useAuth();
-  const { demandes } = useDemandes();
+  const { demandes, loading: demandesLoading } = useDemandes();
   const navigate = useNavigate();
 
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les données au montage du composant
+  React.useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const { ProfileService } = await import('../../services/profileService');
+        const profilesData = await ProfileService.getAllProfiles();
+        setProfiles(profilesData);
+      } catch (error) {
+        console.error('Error loading admin dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Calcul des statistiques
-  const totalAdherents = 4; // Données simulées
-  const demandesEnAttente = demandes.filter(d => d.statut === 'acceptee').length;
-  const demandesTraitees = demandes.filter(d => d.statut === 'validee').length;
+  const totalAdherents = profiles.filter(p => p.role === 'membre').length;
+  const demandesEnAttente = demandes.filter(d => d.status === 'acceptee').length;
+  const demandesTraitees = demandes.filter(d => d.status === 'validee').length;
   const demandesCeMois = demandes.filter(d => {
-    const date = new Date(d.dateSoumission);
+    const date = new Date(d.submission_date);
     const now = new Date();
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).length;
+
+  if (loading || demandesLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg h-32"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const statsCards = [
     {

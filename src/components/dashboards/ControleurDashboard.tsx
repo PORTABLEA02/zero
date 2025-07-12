@@ -6,9 +6,37 @@ import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock, User, Filt
 
 export function ControleurDashboard() {
   const { user } = useAuth();
-  const { getDemandesByRole, updateDemandeStatut } = useDemandes();
+  const { demandes, loading: demandesLoading, updateDemandeStatut } = useDemandes();
   const navigate = useNavigate();
   
+  const [toutesLesDemandes, setToutesLesDemandes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger toutes les demandes au montage du composant
+  React.useEffect(() => {
+    const loadDemandes = async () => {
+      try {
+        setLoading(true);
+        const { DemandService } = await import('../../services/demandService');
+        const demandesData = await DemandService.getDemands();
+        setToutesLesDemandes(demandesData);
+      } catch (error) {
+        console.error('Error loading demands:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDemandes();
+  }, []);
+
+  // Mettre à jour les demandes quand le contexte change
+  React.useEffect(() => {
+    if (demandes.length > 0) {
+      setToutesLesDemandes(demandes);
+    }
+  }, [demandes]);
+
   // Fonctions utilitaires déclarées en premier pour éviter les erreurs de référence
   const getTypeLabel = (type: string) => {
     const labels = {
@@ -56,30 +84,28 @@ export function ControleurDashboard() {
   const [filtreStatut, setFiltreStatut] = useState<string>('en_attente');
   const [recherche, setRecherche] = useState('');
   
-  const toutesLesDemandes = getDemandesByRole('controleur');
-  
   // Filtrage des demandes
   const demandesFiltrees = toutesLesDemandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
+    const matchStatut = filtreStatut === 'tous' || demande.status === filtreStatut;
     const matchRecherche = 
-      (getTypeLabel(demande.type) || '').toLowerCase().includes(recherche.toLowerCase()) ||
-      (demande.membreNom || '').toLowerCase().includes(recherche.toLowerCase()) ||
-      (demande.beneficiaireNom || '').toLowerCase().includes(recherche.toLowerCase());
+      (getTypeLabel(demande.service_type) || '').toLowerCase().includes(recherche.toLowerCase()) ||
+      (demande.member_name || '').toLowerCase().includes(recherche.toLowerCase()) ||
+      (demande.beneficiary_name || '').toLowerCase().includes(recherche.toLowerCase());
     
     return matchStatut && matchRecherche;
   });
 
-  const handleApprouver = (demandeId: string) => {
+  const handleApprouver = async (demandeId: string) => {
     if (user) {
-      updateDemandeStatut(demandeId, 'acceptee', user.id, user.name, commentaire);
+      await updateDemandeStatut(demandeId, 'acceptee', user.id, user.name, commentaire);
       setSelectedDemande(null);
       setCommentaire('');
     }
   };
 
-  const handleRejeter = (demandeId: string) => {
+  const handleRejeter = async (demandeId: string) => {
     if (user && commentaire.trim()) {
-      updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
+      await updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
       setSelectedDemande(null);
       setCommentaire('');
     }
@@ -87,14 +113,38 @@ export function ControleurDashboard() {
 
   const stats = {
     total: toutesLesDemandes.length,
-    enAttente: toutesLesDemandes.filter(d => d.statut === 'en_attente').length,
-    approuvees: toutesLesDemandes.filter(d => d.statut === 'acceptee').length,
-    rejetees: toutesLesDemandes.filter(d => d.statut === 'rejetee').length,
-    validees: toutesLesDemandes.filter(d => d.statut === 'validee').length
+    enAttente: toutesLesDemandes.filter(d => d.status === 'en_attente').length,
+    approuvees: toutesLesDemandes.filter(d => d.status === 'acceptee').length,
+    rejetees: toutesLesDemandes.filter(d => d.status === 'rejetee').length,
+    validees: toutesLesDemandes.filter(d => d.status === 'validee').length
   };
 
   const demandeSelectionnee = selectedDemande ? toutesLesDemandes.find(d => d.id === selectedDemande) : null;
 
+  if (loading || demandesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-48"></div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-gray-200 rounded-lg h-24"></div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">

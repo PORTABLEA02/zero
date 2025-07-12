@@ -26,11 +26,6 @@ export function LoginForm() {
     }
   };
 
-  const demoAccounts = [
-    { role: 'membre', email: 'membre@demo.com', icon: Users, color: 'blue', label: 'Membre', note: '' },
-    { role: 'controleur', email: 'controleur@demo.com', icon: Shield, color: 'orange', label: 'Contrôleur', note: '(Mot de passe à changer)' },
-    { role: 'administrateur', email: 'admin@musaib.com', icon: UserCheck, color: 'purple', label: 'Administrateur' }
-  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
@@ -97,41 +92,6 @@ export function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-4 sm:mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500 text-xs sm:text-sm">Comptes de démonstration</span>
-              </div>
-            </div>
-
-            <div className="mt-3 sm:mt-4 grid grid-cols-1 gap-2">
-              {demoAccounts.map(({ role: demoRole, email: demoEmail, icon: Icon, color, label, note }) => (
-                <button
-                  key={demoRole}
-                  onClick={() => {
-                    setEmail(demoEmail);
-                    setPassword('demo123');
-                  }}
-                  className={`flex items-center justify-center px-2 sm:px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors`}
-                >
-                  <Icon className={`w-4 h-4 mr-2 text-${color}-600`} />
-                  <span className="truncate flex flex-col sm:flex-row sm:items-center">
-                    <span>
-                      <span className="hidden sm:inline">{label} - </span>
-                      {demoEmail}
-                    </span>
-                    {note && <span className="text-xs text-orange-600 sm:ml-1">{note}</span>}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs sm:text-sm text-gray-500 text-center">
-              Mot de passe pour tous les comptes : demo123
-            </p>
-          </div>
         </div>
       </div>
     </div>

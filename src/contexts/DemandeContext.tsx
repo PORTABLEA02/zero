@@ -1,134 +1,124 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Demande, DemandeFormData } from '../types';
+import { DemandService, type DemandFormData } from '../services/demandService';
+import { AuditService } from '../services/auditService';
+import type { Demand } from '../lib/supabase';
 
 interface DemandeContextType {
-  demandes: Demande[];
-  createDemande: (data: DemandeFormData, membreId: string, membreNom: string) => void;
-  updateDemandeStatut: (id: string, statut: Demande['statut'], userId: string, userNom: string, commentaire?: string) => void;
-  getDemandesByRole: (role: string, userId?: string) => Demande[];
+  demandes: Demand[];
+  loading: boolean;
+  createDemande: (data: DemandFormData, membreId: string, membreNom: string) => Promise<boolean>;
+  updateDemandeStatut: (id: string, statut: 'acceptee' | 'rejetee' | 'validee', userId: string, userNom: string, commentaire?: string) => Promise<boolean>;
+  getDemandesByRole: (role: string, userId?: string) => Promise<Demand[]>;
+  refreshDemandes: () => Promise<void>;
 }
 
 const DemandeContext = createContext<DemandeContextType | undefined>(undefined);
 
 export function DemandeProvider({ children }: { children: ReactNode }) {
-  const [demandes, setDemandes] = useState<Demande[]>([
-    {
-      id: '1',
-      type: 'mariage',
-      beneficiaireId: '1',
-      beneficiaireNom: 'Jean Dupont',
-      beneficiaireRelation: 'Adhérent',
-      montant: 50000,
-      dateSoumission: '2024-01-15',
-      statut: 'acceptee',
-      membreId: '1',
-      membreNom: 'Jean Dupont',
-      controleurId: '2',
-      controleurNom: 'Marie Martin',
-      dateTraitement: '2024-01-18',
-      pieceJointe: {
-        nom: 'certificat_mariage_dupont.pdf',
-        taille: 245760,
-        type: 'application/pdf',
-        dateUpload: '2024-01-15T10:30:00Z',
-        url: 'uploads/1705312200000_certificat_mariage_dupont.pdf'
-      }
-    },
-    {
-      id: '2',
-      type: 'pret_social',
-      beneficiaireId: '1',
-      beneficiaireNom: 'Jean Dupont',
-      beneficiaireRelation: 'Adhérent',
-      montant: 100000,
-      dateSoumission: '2024-01-20',
-      statut: 'en_attente',
-      membreId: '1',
-      membreNom: 'Jean Dupont'
-    }
-  ]);
+  const [demandes, setDemandes] = useState<Demand[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const createDemande = (data: DemandeFormData, membreId: string, membreNom: string) => {
-    // Simuler l'upload du fichier et créer l'objet pieceJointe
-    let pieceJointeInfo = undefined;
-    if (data.fichierPieceJointe) {
-      pieceJointeInfo = {
-        nom: data.fichierPieceJointe.name,
-        taille: data.fichierPieceJointe.size,
-        type: data.fichierPieceJointe.type,
-        dateUpload: new Date().toISOString(),
-        url: `uploads/${Date.now()}_${data.fichierPieceJointe.name}` // URL simulée
-      };
+  const refreshDemandes = async () => {
+    try {
+      setLoading(true);
+      const allDemandes = await DemandService.getDemands();
+      setDemandes(allDemandes);
+    } catch (error) {
+      console.error('Error refreshing demandes:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const nouvelleDemande: Demande = {
-      id: Date.now().toString(),
-      type: data.type,
-      beneficiaireId: data.beneficiaireId,
-      beneficiaireNom: data.beneficiaireNom,
-      beneficiaireRelation: data.beneficiaireRelation,
-      montant: data.montant,
-      pieceJointe: pieceJointeInfo,
-      dateSoumission: new Date().toISOString().split('T')[0],
-      statut: 'en_attente',
-      membreId,
-      membreNom
-    };
-    setDemandes(prev => [...prev, nouvelleDemande]);
   };
 
-  const updateDemandeStatut = (id: string, statut: Demande['statut'], userId: string, userNom: string, commentaire?: string) => {
-    setDemandes(prev => prev.map(demande => {
-      if (demande.id === id) {
-        const now = new Date().toISOString().split('T')[0];
-        if (statut === 'acceptee') {
-          return {
-            ...demande,
-            statut,
-            controleurId: userId,
-            controleurNom: userNom,
-            dateTraitement: now,
-            commentaire
-          };
-        } else if (statut === 'rejetee') {
-          return {
-            ...demande,
-            statut,
-            controleurId: userId,
-            controleurNom: userNom,
-            dateTraitement: now,
-            commentaire
-          };
-        } else if (statut === 'validee') {
-          return {
-            ...demande,
-            statut,
-            administrateurId: userId,
-            administrateurNom: userNom,
-            dateValidation: now,
-            commentaire
-          };
-        }
+  // Charger les demandes au montage du composant
+  React.useEffect(() => {
+    refreshDemandes();
+  }, []);
+
+  const createDemande = async (data: DemandFormData, membreId: string, membreNom: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const nouvelleDemande = await DemandService.createDemande(membreId, membreNom, data);
+      
+      if (nouvelleDemande) {
+        // Rafraîchir la liste des demandes
+        await refreshDemandes();
+        
+        // Log de création de demande
+        await AuditService.createLog(
+          'Nouvelle demande',
+          `Demande ${data.service_type} créée par ${membreNom}`,
+          'info',
+          'Demandes'
+        );
+        
+        return true;
       }
-      return demande;
-    }));
+      
+      return false;
+    } catch (error) {
+      console.error('Error creating demande:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getDemandesByRole = (role: string, userId?: string): Demande[] => {
-    switch (role) {
-      case 'membre':
-        return demandes.filter(d => d.membreId === userId);
-      case 'controleur':
-        return demandes; // Le contrôleur voit toutes les demandes
-      case 'administrateur':
-        return demandes.filter(d => d.statut === 'acceptee'); // L'admin ne voit que les demandes acceptées par le contrôleur
-      default:
-        return [];
+  const updateDemandeStatut = async (
+    id: string, 
+    statut: 'acceptee' | 'rejetee' | 'validee', 
+    userId: string, 
+    userNom: string, 
+    commentaire?: string
+  ): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const success = await DemandService.updateDemandStatus(id, statut, userId, userNom, commentaire);
+      
+      if (success) {
+        // Rafraîchir la liste des demandes
+        await refreshDemandes();
+        
+        // Log de mise à jour de statut
+        await AuditService.createLog(
+          'Mise à jour statut demande',
+          `Demande ${id} ${statut} par ${userNom}`,
+          statut === 'rejetee' ? 'warning' : 'success',
+          'Demandes'
+        );
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error updating demande status:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDemandesByRole = async (role: string, userId?: string): Promise<Demand[]> => {
+    try {
+      return await DemandService.getDemandsByRole(role, userId);
+    } catch (error) {
+      console.error('Error getting demandes by role:', error);
+      return [];
     }
   };
 
   return (
-    <DemandeContext.Provider value={{ demandes, createDemande, updateDemandeStatut, getDemandesByRole }}>
+    <DemandeContext.Provider value={{ 
+      demandes, 
+      loading,
+      createDemande, 
+      updateDemandeStatut, 
+      getDemandesByRole,
+      refreshDemandes
+    }}>
       {children}
     </DemandeContext.Provider>
   );

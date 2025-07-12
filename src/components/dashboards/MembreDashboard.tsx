@@ -21,18 +21,61 @@ import { DemandeFormData } from '../../types';
 
 export function MembreDashboard() {
   const { user } = useAuth();
-  const { getDemandesByRole } = useDemandes();
-  const { getMembresFamilleByMembre } = useFamille();
+  const { demandes, loading: demandesLoading } = useDemandes();
+  const { loading: familleLoading } = useFamille();
   const navigate = useNavigate();
   
-  const mesDemandes = getDemandesByRole('membre', user?.id);
-  const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
+  const [mesDemandes, setMesDemandes] = useState([]);
+  const [membresFamille, setMembresFamille] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les données au montage du composant
+  React.useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Charger les demandes du membre
+        const { DemandService } = await import('../../services/demandService');
+        const demandesData = await DemandService.getDemandsByMember(user.id);
+        setMesDemandes(demandesData);
+        
+        // Charger les membres de famille
+        const { FamilyService } = await import('../../services/familyService');
+        const familleData = await FamilyService.getFamilyMembers(user.id);
+        setMembresFamille(familleData);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  if (loading || demandesLoading || familleLoading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg h-24"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   const stats = {
     soumises: mesDemandes.length,
-    enAttente: mesDemandes.filter(d => d.statut === 'en_attente').length,
-    approuvees: mesDemandes.filter(d => d.statut === 'acceptee' || d.statut === 'validee').length,
+    enAttente: mesDemandes.filter(d => d.status === 'en_attente').length,
+    approuvees: mesDemandes.filter(d => d.status === 'acceptee' || d.status === 'validee').length,
     membresFamille: membresFamille.length
   };
 
