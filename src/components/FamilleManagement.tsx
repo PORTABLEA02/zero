@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFamille } from '../contexts/FamilleContext';
 import { FamilleForm } from './FamilleForm';
 import { MembreFamilleFormData } from '../types';
-import { Plus, User, Calendar, Trash2, Users } from 'lucide-react';
+import { Plus, User, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
 
 export function FamilleManagement() {
@@ -96,6 +96,8 @@ export function FamilleManagement() {
           <li>• Un(e) seul(e) époux/épouse</li>
           <li>• Un père et une mère maximum</li>
           <li>• Un beau-père et une belle-mère maximum</li>
+          <li>• Les membres ajoutés ne peuvent pas être modifiés ou supprimés</li>
+          <li>• Pour toute correction, contactez l'administrateur</li>
         </ul>
       </div>
 
@@ -129,12 +131,12 @@ export function FamilleManagement() {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => supprimerMembreFamille(membre.id)}
-                  className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Validé
+                  </span>
+                </div>
               </div>
               
               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
@@ -159,6 +161,23 @@ export function FamilleManagement() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Message d'information */}
+      {membresFamille.length > 0 && (
+        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800 mb-1">Information importante</h3>
+              <p className="text-sm text-yellow-700">
+                Une fois ajoutés, les membres de famille ne peuvent plus être modifiés ou supprimés par les adhérents. 
+                Cette mesure garantit l'intégrité des données familiales. Pour toute correction nécessaire, 
+                veuillez contacter l'administrateur de la mutuelle.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

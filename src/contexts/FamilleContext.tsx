@@ -4,7 +4,8 @@ import { MembreFamille, MembreFamilleFormData } from '../types';
 interface FamilleContextType {
   membresFamille: MembreFamille[];
   ajouterMembreFamille: (data: MembreFamilleFormData, membreId: string) => boolean;
-  supprimerMembreFamille: (id: string) => void;
+  supprimerMembreFamille: (id: string) => boolean;
+  modifierMembreFamille: (id: string, data: Partial<MembreFamilleFormData>) => boolean;
   getMembresFamilleByMembre: (membreId: string) => MembreFamille[];
   canAddMember: (relation: MembreFamille['relation'], membreId: string) => boolean;
 }
@@ -111,7 +112,35 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
   };
 
   const supprimerMembreFamille = (id: string) => {
-    setMembresFamille(prev => prev.filter(m => m.id !== id));
+    try {
+      setMembresFamille(prev => prev.filter(m => m.id !== id));
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la suppression du membre de famille:', error);
+      return false;
+    }
+  };
+
+  const modifierMembreFamille = (id: string, data: Partial<MembreFamilleFormData>): boolean => {
+    try {
+      setMembresFamille(prev => prev.map(membre => {
+        if (membre.id === id) {
+          return {
+            ...membre,
+            ...data,
+            // Conserver les champs système
+            id: membre.id,
+            membreId: membre.membreId,
+            dateAjout: membre.dateAjout
+          };
+        }
+        return membre;
+      }));
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la modification du membre de famille:', error);
+      return false;
+    }
   };
 
   const getMembresFamilleByMembre = (membreId: string): MembreFamille[] => {
@@ -123,6 +152,7 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
       membresFamille,
       ajouterMembreFamille,
       supprimerMembreFamille,
+      modifierMembreFamille,
       getMembresFamilleByMembre,
       canAddMember
     }}>

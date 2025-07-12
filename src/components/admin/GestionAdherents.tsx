@@ -19,7 +19,8 @@ import {
   Baby,
   Heart,
   UserPlus,
-  CheckCircle
+  CheckCircle,
+  Trash2
 } from 'lucide-react';
 import { useFamille } from '../../contexts/FamilleContext';
 
@@ -47,7 +48,7 @@ interface AdherentFormData {
 }
 
 export function GestionAdherents() {
-  const { membresFamille } = useFamille();
+  const { membresFamille, supprimerMembreFamille, modifierMembreFamille } = useFamille();
   const [adherents, setAdherents] = useState<Adherent[]>([
     {
       id: '1',
@@ -596,6 +597,46 @@ export function GestionAdherents() {
                               <div className="text-xs text-gray-500">
                                 Ajouté le {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}
                               </div>
+                            </div>
+                            
+                            {/* Actions administrateur */}
+                            <div className="flex space-x-2 mt-2">
+                              <button
+                                onClick={() => {
+                                  // Pour l'instant, on simule une modification simple
+                                  const nouveauNom = prompt(`Modifier le nom de ${membre.prenom} ${membre.nom}:`, membre.nom);
+                                  if (nouveauNom && nouveauNom.trim() && nouveauNom !== membre.nom) {
+                                    const success = modifierMembreFamille(membre.id, { nom: nouveauNom.trim() });
+                                    if (success) {
+                                      alert('Membre de famille modifié avec succès');
+                                    } else {
+                                      alert('Erreur lors de la modification');
+                                    }
+                                  }
+                                }}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                title="Modifier ce membre de famille"
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Modifier
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${membre.prenom} ${membre.nom} de la famille ?`)) {
+                                    const success = supprimerMembreFamille(membre.id);
+                                    if (success) {
+                                      alert('Membre de famille supprimé avec succès');
+                                    } else {
+                                      alert('Erreur lors de la suppression');
+                                    }
+                                  }
+                                }}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                                title="Supprimer ce membre de famille"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Supprimer
+                              </button>
                             </div>
                           </div>
                         ))}
