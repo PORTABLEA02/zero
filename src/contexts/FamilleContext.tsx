@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 import { FamilyService, type FamilyMemberFormData } from '../services/familyService';
 import { AuditService } from '../services/auditService';
 import type { FamilyMember } from '../lib/supabase';
@@ -19,8 +20,15 @@ const FamilleContext = createContext<FamilleContextType | undefined>(undefined);
 export function FamilleProvider({ children }: { children: ReactNode }) {
   const [membresFamille, setMembresFamille] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
   const refreshFamilyMembers = async () => {
+    // Only load family members if user is authenticated
+    if (!isAuthenticated || !user) {
+      setMembresFamille([]);
+      return;
+    }
+
     try {
       setLoading(true);
       const allMembers = await FamilyService.getAllFamilyMembers();
@@ -32,12 +40,21 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Charger les membres de famille au montage du composant
+  // Charger les membres de famille seulement quand l'utilisateur est authentifié
   React.useEffect(() => {
-    refreshFamilyMembers();
-  }, []);
+    if (isAuthenticated && user) {
+      refreshFamilyMembers();
+    } else {
+      setMembresFamille([]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, user]);
 
   const canAddMember = async (relation: string, membreId: string): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       return await FamilyService.canAddRelation(membreId, relation);
     } catch (error) {
@@ -47,6 +64,10 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
   };
 
   const ajouterMembreFamille = async (data: FamilyMemberFormData, membreId: string): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       setLoading(true);
       
@@ -82,6 +103,10 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
   };
 
   const supprimerMembreFamille = async (id: string): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       setLoading(true);
       
@@ -112,6 +137,10 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
   };
 
   const modifierMembreFamille = async (id: string, data: Partial<FamilyMemberFormData>): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       setLoading(true);
       
@@ -142,6 +171,10 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
   };
 
   const getMembresFamilleByMembre = async (membreId: string): Promise<FamilyMember[]> => {
+    if (!isAuthenticated || !user) {
+      return [];
+    }
+
     try {
       return await FamilyService.getFamilyMembers(membreId);
     } catch (error) {

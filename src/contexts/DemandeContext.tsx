@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 import { DemandService, type DemandFormData } from '../services/demandService';
 import { AuditService } from '../services/auditService';
 import type { Demand } from '../lib/supabase';
@@ -17,8 +18,15 @@ const DemandeContext = createContext<DemandeContextType | undefined>(undefined);
 export function DemandeProvider({ children }: { children: ReactNode }) {
   const [demandes, setDemandes] = useState<Demand[]>([]);
   const [loading, setLoading] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
   const refreshDemandes = async () => {
+    // Only load demands if user is authenticated
+    if (!isAuthenticated || !user) {
+      setDemandes([]);
+      return;
+    }
+
     try {
       setLoading(true);
       const allDemandes = await DemandService.getDemands();
@@ -30,12 +38,21 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Charger les demandes au montage du composant
+  // Charger les demandes seulement quand l'utilisateur est authentifié
   React.useEffect(() => {
-    refreshDemandes();
-  }, []);
+    if (isAuthenticated && user) {
+      refreshDemandes();
+    } else {
+      setDemandes([]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, user]);
 
   const createDemande = async (data: DemandFormData, membreId: string, membreNom: string): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       setLoading(true);
       
@@ -72,6 +89,10 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
     userNom: string, 
     commentaire?: string
   ): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       setLoading(true);
       
@@ -102,6 +123,10 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
   };
 
   const getDemandesByRole = async (role: string, userId?: string): Promise<Demand[]> => {
+    if (!isAuthenticated || !user) {
+      return [];
+    }
+
     try {
       return await DemandService.getDemandsByRole(role, userId);
     } catch (error) {
