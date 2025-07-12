@@ -32,7 +32,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   // Interface spéciale pour l'administrateur et le membre
-  if (user?.role === 'administrateur' || user?.role === 'membre') {
+  if (user?.role === 'administrateur' || user?.role === 'membre' || user?.role === 'controleur') {
     return (
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar pour desktop */}
@@ -72,7 +72,9 @@ export function Layout({ children }: LayoutProps) {
                 <Menu className="h-6 w-6" />
               </button>
               <h1 className="text-lg font-semibold text-gray-900 truncate">
-                {user.role === 'administrateur' ? 'MuSAIB Admin' : 'MuSAIB'}
+                {user.role === 'administrateur' ? 'MuSAIB Admin' :
+                 user.role === 'controleur' ? 'MuSAIB Contrôle' :
+                 'MuSAIB'}
               </h1>
               <div className="w-10"></div> {/* Spacer pour centrer le titre */}
             </div>

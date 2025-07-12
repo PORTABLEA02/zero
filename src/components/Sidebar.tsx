@@ -34,6 +34,11 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
     { icon: FileBarChart, label: 'Logs & Audit', path: '/admin/logs' },
   ];
 
+  const controleurMenuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: FileText, label: 'Contrôle des demandes', path: '/dashboard' },
+  ];
+
   const memberMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: UserPlus, label: 'Informations familiales', path: '/membre/famille' },
@@ -41,8 +46,15 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
     { icon: History, label: 'Historique', path: '/membre/historique' },
   ];
 
-  const menuItems = userRole === 'membre' ? memberMenuItems : adminMenuItems;
-  const sidebarTitle = userRole === 'membre' ? 'MuSAIB' : 'MuSAIB Admin';
+  const menuItems = 
+    userRole === 'membre' ? memberMenuItems :
+    userRole === 'controleur' ? controleurMenuItems :
+    adminMenuItems;
+    
+  const sidebarTitle = 
+    userRole === 'membre' ? 'MuSAIB' :
+    userRole === 'controleur' ? 'MuSAIB Contrôle' :
+    'MuSAIB Admin';
 
   const handleMenuClick = (path: string) => {
     navigate(path);
@@ -85,21 +97,33 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
         <div className="flex items-center mb-3">
           <div className="flex-shrink-0">
             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <User className="h-6 w-6 text-blue-600" />
+              {userRole === 'controleur' ? (
+                <Shield className="h-6 w-6 text-orange-600" />
+              ) : (
+                <User className="h-6 w-6 text-blue-600" />
+              )}
             </div>
           </div>
           <div className="ml-3 min-w-0 flex-1">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {userRole === 'membre' ? 'Jean Dupont' : 'Administrateur MuSAIB'}
+              {userRole === 'membre' ? 'Jean Dupont' :
+               userRole === 'controleur' ? 'Marie Martin' :
+               'Administrateur MuSAIB'}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {userRole === 'membre' ? 'membre@musaib.com' : 'admin@musaib.com'}
+              {userRole === 'membre' ? 'membre@demo.com' :
+               userRole === 'controleur' ? 'controleur@demo.com' :
+               'admin@musaib.com'}
             </p>
           </div>
         </div>
         
         <Link 
-          to={userRole === 'administrateur' ? '/admin/compte' : '/membre/compte'}
+          to={
+            userRole === 'administrateur' ? '/admin/compte' :
+            userRole === 'controleur' ? '/controleur/compte' :
+            '/membre/compte'
+          }
           className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-2"
         >
           <User className="mr-3 h-4 w-4" />

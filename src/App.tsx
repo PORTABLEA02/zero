@@ -16,6 +16,7 @@ import { GestionDemandes } from './components/admin/GestionDemandes';
 import { GestionServices } from './components/admin/GestionServices';
 import { LogsAudit } from './components/admin/LogsAudit';
 import { MonCompte as AdminMonCompte } from './components/admin/MonCompte';
+import { MonCompte as ControleurMonCompte } from './components/controleur/MonCompte';
 import { MonCompte } from './components/membre/MonCompte';
 import { ForcePasswordChange } from './components/ForcePasswordChange';
 
@@ -199,6 +200,18 @@ function AppContent() {
               <AdminRoute>
                 <AdminMonCompte />
               </AdminRoute>
+            } 
+          />
+        </Route>
+        
+        {/* Routes pour le contrôleur */}
+        <Route path="controleur">
+          <Route 
+            path="compte" 
+            element={
+              <ControllerRoute>
+                <ControleurMonCompte />
+              </ControllerRoute>
             } 
           />
         </Route>

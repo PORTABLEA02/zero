@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { 
   Users, 
   Plus, 
@@ -17,7 +18,8 @@ import {
   User,
   Baby,
   Heart,
-  UserPlus
+  UserPlus,
+  CheckCircle
 } from 'lucide-react';
 import { useFamille } from '../../contexts/FamilleContext';
 
@@ -31,6 +33,17 @@ interface Adherent {
   statut: 'actif' | 'inactif' | 'suspendu';
   service: string;
   adresse: string;
+}
+
+interface AdherentFormData {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string;
+  adresse: string;
+  service: string;
+  motDePasse: string;
+  confirmerMotDePasse: string;
 }
 
 export function GestionAdherents() {
@@ -85,6 +98,7 @@ export function GestionAdherents() {
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
@@ -241,6 +255,31 @@ export function GestionAdherents() {
     setShowConfirmModal({ show: false, action: null, adherent: null });
   };
 
+  const handleAjouterAdherent = (data: AdherentFormData) => {
+    // Générer un nouvel adhérent
+    const nouvelAdherent: Adherent = {
+      id: (adherents.length + 1).toString(),
+      nom: data.nom,
+      prenom: data.prenom,
+      email: data.email,
+      telephone: data.telephone,
+      adresse: data.adresse,
+      service: data.service,
+      dateAdhesion: new Date().toISOString().split('T')[0],
+      statut: 'actif'
+    };
+
+    // Ajouter à la liste
+    setAdherents(prev => [...prev, nouvelAdherent]);
+    
+    // Afficher un message de succès
+    setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} a été ajouté avec succès !`);
+    setTimeout(() => setSuccessMessage(''), 5000);
+    
+    // Fermer le formulaire
+    setShowAddForm(false);
+  };
+
   const getActionLabel = (action: string) => {
     switch (action) {
       case 'activer': return 'activer';
@@ -276,6 +315,16 @@ export function GestionAdherents() {
           Nouvel adhérent
         </button>
       </div>
+
+      {/* Message de succès */}
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center">
+            <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+            <span className="text-green-800">{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
@@ -612,6 +661,14 @@ export function GestionAdherents() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Formulaire d'ajout d'adhérent */}
+      {showAddForm && (
+        <AjouterAdherentForm
+          onClose={() => setShowAddForm(false)}
+          onSubmit={handleAjouterAdherent}
+        />
       )}
     </div>
   );
