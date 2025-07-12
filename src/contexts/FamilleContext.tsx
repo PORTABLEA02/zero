@@ -125,13 +125,32 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     try {
       setMembresFamille(prev => prev.map(membre => {
         if (membre.id === id) {
+          // Gérer la pièce justificative
+          let pieceJustificativeInfo = membre.pieceJustificative;
+          
+          if (data.pieceJustificative === null) {
+            // Supprimer la pièce justificative
+            pieceJustificativeInfo = undefined;
+          } else if (data.pieceJustificative instanceof File) {
+            // Nouvelle pièce justificative uploadée
+            pieceJustificativeInfo = {
+              nom: data.pieceJustificative.name,
+              taille: data.pieceJustificative.size,
+              type: data.pieceJustificative.type,
+              dateUpload: new Date().toISOString(),
+              url: `uploads/famille/${Date.now()}_${data.pieceJustificative.name}`
+            };
+          }
+          // Si data.pieceJustificative est undefined, on garde la pièce existante
+          
           return {
             ...membre,
             ...data,
             // Conserver les champs système
             id: membre.id,
             membreId: membre.membreId,
-            dateAjout: membre.dateAjout
+            dateAjout: membre.dateAjout,
+            pieceJustificative: pieceJustificativeInfo
           };
         }
         return membre;

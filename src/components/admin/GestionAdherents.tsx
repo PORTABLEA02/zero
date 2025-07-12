@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
+import { FamilleEditForm } from '../FamilleEditForm';
 import { 
   Users, 
   Plus, 
@@ -23,6 +24,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useFamille } from '../../contexts/FamilleContext';
+import { MembreFamille, MembreFamilleFormData } from '../../types';
 
 interface Adherent {
   id: string;
@@ -48,7 +50,7 @@ interface AdherentFormData {
 }
 
 export function GestionAdherents() {
-  const { membresFamille, supprimerMembreFamille, modifierMembreFamille } = useFamille();
+  const { membresFamille, supprimerMembreFamille, modifierMembreFamille, canAddMember } = useFamille();
   const [adherents, setAdherents] = useState<Adherent[]>([
     {
       id: '1',
@@ -101,11 +103,14 @@ export function GestionAdherents() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [membreToEdit, setMembreToEdit] = useState<MembreFamille | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
-    action: 'activer' | 'suspendre' | 'reinitialiser' | null;
+    action: 'activer' | 'suspendre' | 'reinitialiser' | 'supprimer_membre' | null;
     adherent: Adherent | null;
-  }>({ show: false, action: null, adherent: null });
+    membre?: MembreFamille | null;
+  }>({ show: false, action: null, adherent: null, membre: null });
 
   const adherentsFiltres = adherents.filter(adherent => {
     const matchRecherche = 
@@ -251,9 +256,18 @@ export function GestionAdherents() {
       case 'reinitialiser':
         handleReinitialiserAdherent(showConfirmModal.adherent.id);
         break;
+      case 'supprimer_membre':
+        if (showConfirmModal.membre) {
+          const success = supprimerMembreFamille(showConfirmModal.membre.id);
+          if (success) {
+            setSuccessMessage(`Le membre de famille ${showConfirmModal.membre.prenom} ${showConfirmModal.membre.nom} a été supprimé avec succès.`);
+            setTimeout(() => setSuccessMessage(''), 5000);
+          }
+        }
+        break;
     }
 
-    setShowConfirmModal({ show: false, action: null, adherent: null });
+    setShowConfirmModal({ show: false, action: null, adherent: null, membre: null });
   };
 
   const handleAjouterAdherent = (data: AdherentFormData) => {
@@ -281,11 +295,37 @@ export function GestionAdherents() {
     setShowAddForm(false);
   };
 
+  const handleEditMembre = (membre: MembreFamille) => {
+    setMembreToEdit(membre);
+    setShowEditForm(true);
+  };
+
+  const handleSaveMembre = (id: string, data: Partial<MembreFamilleFormData>): boolean => {
+    const success = modifierMembreFamille(id, data);
+    if (success) {
+      setSuccessMessage('Membre de famille modifié avec succès par l\'administrateur.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+      setShowEditForm(false);
+      setMembreToEdit(null);
+    }
+    return success;
+  };
+
+  const confirmDeleteMembre = (membre: MembreFamille, adherent: Adherent) => {
+    setShowConfirmModal({ 
+      show: true, 
+      action: 'supprimer_membre', 
+      adherent, 
+      membre 
+    });
+  };
+
   const getActionLabel = (action: string) => {
     switch (action) {
       case 'activer': return 'activer';
       case 'suspendre': return 'suspendre';
       case 'reinitialiser': return 'réinitialiser le mot de passe de';
+      case 'supprimer_membre': return 'supprimer le membre de famille';
       default: return action;
     }
   };
@@ -602,18 +642,7 @@ export function GestionAdherents() {
                             {/* Actions administrateur */}
                             <div className="flex space-x-2 mt-2">
                               <button
-                                onClick={() => {
-                                  // Pour l'instant, on simule une modification simple
-                                  const nouveauNom = prompt(`Modifier le nom de ${membre.prenom} ${membre.nom}:`, membre.nom);
-                                  if (nouveauNom && nouveauNom.trim() && nouveauNom !== membre.nom) {
-                                    const success = modifierMembreFamille(membre.id, { nom: nouveauNom.trim() });
-                                    if (success) {
-                                      alert('Membre de famille modifié avec succès');
-                                    } else {
-                                      alert('Erreur lors de la modification');
-                                    }
-                                  }
-                                }}
+                                onClick={() => handleEditMembre(membre)}
                                 className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
                                 title="Modifier ce membre de famille"
                               >
@@ -621,16 +650,7 @@ export function GestionAdherents() {
                                 Modifier
                               </button>
                               <button
-                                onClick={() => {
-                                  if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${membre.prenom} ${membre.nom} de la famille ?`)) {
-                                    const success = supprimerMembreFamille(membre.id);
-                                    if (success) {
-                                      alert('Membre de famille supprimé avec succès');
-                                    } else {
-                                      alert('Erreur lors de la suppression');
-                                    }
-                                  }
-                                }}
+                                onClick={() => confirmDeleteMembre(membre, adherent)}
                                 className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
                                 title="Supprimer ce membre de famille"
                               >
@@ -666,27 +686,50 @@ export function GestionAdherents() {
               Confirmer l'action
             </h3>
             <p className="text-sm text-gray-600 mb-6">
-              Êtes-vous sûr de vouloir {getActionLabel(showConfirmModal.action || '')} l'adhérent{' '}
-              <span className="font-medium">
-                {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
-              </span> ?
+              {showConfirmModal.action === 'supprimer_membre' ? (
+                <>
+                  Êtes-vous sûr de vouloir supprimer le membre de famille{' '}
+                  <span className="font-medium">
+                    {showConfirmModal.membre?.prenom} {showConfirmModal.membre?.nom}
+                  </span>{' '}
+                  de la famille de{' '}
+                  <span className="font-medium">
+                    {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
+                  </span> ?
+                </>
+              ) : (
+                <>
+                  Êtes-vous sûr de vouloir {getActionLabel(showConfirmModal.action || '')} l'adhérent{' '}
+                  <span className="font-medium">
+                    {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
+                  </span> ?
+                </>
+              )}
             </p>
             
-            {showConfirmModal.action === 'reinitialiser' && (
+            {showConfirmModal.action === 'reinitialiser' ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-yellow-800">
                   Un nouveau mot de passe temporaire sera envoyé par email à l'adhérent.
                 </p>
               </div>
-            )}
+            ) : showConfirmModal.action === 'supprimer_membre' ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-red-800">
+                  Cette action est irréversible. Le membre de famille sera définitivement supprimé.
+                </p>
+              </div>
+            ) : null}
 
             <div className="flex space-x-3">
               <button
                 onClick={executeAction}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-md text-white transition-colors ${
-                  showConfirmModal.action === 'activer' 
+                  showConfirmModal.action === 'activer'
                     ? 'bg-green-600 hover:bg-green-700'
                     : showConfirmModal.action === 'suspendre'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : showConfirmModal.action === 'supprimer_membre'
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-orange-600 hover:bg-orange-700'
                 }`}
@@ -694,7 +737,7 @@ export function GestionAdherents() {
                 Confirmer
               </button>
               <button
-                onClick={() => setShowConfirmModal({ show: false, action: null, adherent: null })}
+                onClick={() => setShowConfirmModal({ show: false, action: null, adherent: null, membre: null })}
                 className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
               >
                 Annuler
@@ -709,6 +752,25 @@ export function GestionAdherents() {
         <AjouterAdherentForm
           onClose={() => setShowAddForm(false)}
           onSubmit={handleAjouterAdherent}
+        />
+      )}
+
+      {/* Formulaire d'édition de membre de famille */}
+      {showEditForm && membreToEdit && (
+        <FamilleEditForm
+          membre={membreToEdit}
+          onSave={handleSaveMembre}
+          onCancel={() => {
+            setShowEditForm(false);
+            setMembreToEdit(null);
+          }}
+          canAddRelation={(relation, currentId) => {
+            // Permettre de garder la relation actuelle ou vérifier si une nouvelle relation est disponible
+            if (currentId && membreToEdit && relation === membreToEdit.relation) {
+              return true;
+            }
+            return canAddMember(relation, membreToEdit?.membreId || '');
+          }}
         />
       )}
     </div>
