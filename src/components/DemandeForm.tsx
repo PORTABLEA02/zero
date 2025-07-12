@@ -32,6 +32,7 @@ export function DemandeForm() {
     beneficiaireRelation: 'Adhérent',
     montant: montantsServices['mariage'],
     pieceJointe: '',
+    dateSurvenance: '',
     paiement: {
       modePaiement: 'mobile_money',
       numeroAbonnement: '77 123 45 67',
@@ -40,6 +41,7 @@ export function DemandeForm() {
   });
 
   const [errors, setErrors] = useState<Partial<DemandeFormData>>({});
+  const [dateError, setDateError] = useState<string>('');
 
   const handleSubmit = (data: DemandeFormData) => {
     if (user) {
@@ -50,6 +52,42 @@ export function DemandeForm() {
 
   const handleCancel = () => {
     navigate('/dashboard');
+  };
+
+  // Fonction pour valider la date de survenance
+  const validateEventDate = (date: string, eventType: string): boolean => {
+    if (!date) return true; // Si pas de date, on laisse passer pour l'instant
+    
+    // Ne valider que pour les allocations (pas les prêts)
+    if (eventType.includes('pret')) return true;
+    
+    const eventDate = new Date(date);
+    const currentDate = new Date();
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(currentDate.getFullYear() - 1);
+    
+    if (eventDate <= oneYearAgo) {
+      setDateError("L'événement est déjà vieux de 1 an, cette demande ne peut pas être soumise");
+      return false;
+    }
+    
+    setDateError('');
+    return true;
+  };
+
+  // Fonction pour obtenir le label de la date selon le type
+  const getDateLabel = (type: string): string => {
+    switch (type) {
+      case 'mariage': return 'Date du mariage';
+      case 'naissance': return 'Date de naissance';
+      case 'deces': return 'Date du décès';
+      default: return 'Date de l\'événement';
+    }
+  };
+
+  // Vérifier si le type nécessite une date
+  const requiresEventDate = (type: string): boolean => {
+    return ['mariage', 'naissance', 'deces'].includes(type);
   };
   const getRelationLabel = (relation: string) => {
     const labels = {
@@ -93,6 +131,15 @@ export function DemandeForm() {
     const newErrors: Partial<DemandeFormData> = {};
     if (!formData.beneficiaireId) newErrors.beneficiaireId = 'Le bénéficiaire est requis';
     
+    // Validation de la date de survenance pour les allocations
+    if (requiresEventDate(formData.type)) {
+      if (!formData.dateSurvenance) {
+        newErrors.dateSurvenance = `La ${getDateLabel(formData.type).toLowerCase()} est requise`;
+      } else if (!validateEventDate(formData.dateSurvenance, formData.type)) {
+        newErrors.dateSurvenance = dateError;
+      }
+    }
+    
     // Validation des informations de paiement
     if (formData.paiement.modePaiement === 'mobile_money') {
       if (!formData.paiement.numeroAbonnement?.trim()) {
@@ -125,13 +172,20 @@ export function DemandeForm() {
       setFormData(prev => ({ 
         ...prev, 
         [field]: value,
-        montant: nouveauMontant
+        montant: nouveauMontant,
+        dateSurvenance: '' // Réinitialiser la date quand on change de type
       }));
+      setDateError(''); // Réinitialiser l'erreur de date
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    
+    // Validation en temps réel pour la date de survenance
+    if (field === 'dateSurvenance' && requiresEventDate(formData.type)) {
+      validateEventDate(value as string, formData.type);
     }
   };
 
@@ -255,6 +309,31 @@ export function DemandeForm() {
             </select>
             {errors.beneficiaireId && <p className="text-red-500 text-xs mt-1">{errors.beneficiaireId}</p>}
           </div>
+
+          {/* Champ date de survenance pour les allocations */}
+          {requiresEventDate(formData.type) && (
+            <div>
+              <label htmlFor="dateSurvenance" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                {getDateLabel(formData.type)} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="dateSurvenance"
+                value={formData.dateSurvenance || ''}
+                onChange={(e) => handleChange('dateSurvenance', e.target.value)}
+                max={new Date().toISOString().split('T')[0]} // Ne pas permettre de dates futures
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                  errors.dateSurvenance || dateError ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {(errors.dateSurvenance || dateError) && (
+                <p className="text-red-500 text-xs mt-1">{errors.dateSurvenance || dateError}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Les événements de plus d'un an ne peuvent pas faire l'objet d'une demande
+              </p>
+            </div>
+          )}
 
           {/* Affichage du bénéficiaire sélectionné */}
           {formData.beneficiaireNom && (
@@ -447,7 +526,12 @@ export function DemandeForm() {
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+              disabled={!!dateError}
+              className={`flex-1 py-2 px-4 rounded-md transition-colors text-sm font-medium ${
+                dateError 
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               Soumettre
             </button>

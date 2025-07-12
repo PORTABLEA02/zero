@@ -33,6 +33,7 @@ export interface DemandeFormData {
   beneficiaireRelation: string;
   montant?: number;
   pieceJointe?: string;
+  dateSurvenance?: string;
   paiement: PaiementInfo;
 }
 
