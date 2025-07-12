@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { 
@@ -51,6 +52,7 @@ interface AdherentFormData {
 
 export function GestionAdherents() {
   const { membresFamille, supprimerMembreFamille, modifierMembreFamille, canAddMember } = useFamille();
+  const [searchParams] = useSearchParams();
   const [adherents, setAdherents] = useState<Adherent[]>([
     {
       id: '1',
@@ -111,6 +113,15 @@ export function GestionAdherents() {
     adherent: Adherent | null;
     membre?: MembreFamille | null;
   }>({ show: false, action: null, adherent: null, membre: null });
+
+  // Initialiser les filtres selon les paramètres URL
+  React.useEffect(() => {
+    const statutParam = searchParams.get('statut');
+    
+    if (statutParam) {
+      setFiltreStatut(statutParam);
+    }
+  }, [searchParams]);
 
   const adherentsFiltres = adherents.filter(adherent => {
     const matchRecherche = 
@@ -338,6 +349,61 @@ export function GestionAdherents() {
     totalMembres: membresFamille.length
   };
 
+  const statsCards = [
+    {
+      title: 'Total adhérents',
+      value: stats.total,
+      icon: Users,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      filter: 'tous'
+    },
+    {
+      title: 'Actifs',
+      value: stats.actifs,
+      icon: Users,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      filter: 'actif'
+    },
+    {
+      title: 'Inactifs',
+      value: stats.inactifs,
+      icon: Users,
+      iconBg: 'bg-gray-100',
+      iconColor: 'text-gray-600',
+      filter: 'inactif'
+    },
+    {
+      title: 'Suspendus',
+      value: stats.suspendus,
+      icon: Users,
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
+      filter: 'suspendu'
+    },
+    {
+      title: 'Membres famille',
+      value: stats.totalMembres,
+      icon: User,
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      filter: null // Pas de filtre pour les membres de famille
+    }
+  ];
+
+  const handleStatClick = (filter: string | null) => {
+    if (filter) {
+      setFiltreStatut(filter);
+      setRecherche('');
+      // Mettre à jour l'URL
+      const newSearchParams = new URLSearchParams();
+      if (filter !== 'tous') {
+        newSearchParams.set('statut', filter);
+      }
+      navigate(`/admin/adherents?${newSearchParams.toString()}`, { replace: true });
+    }
+  };
   return (
     <div className="p-6">
       {/* Header */}
@@ -369,65 +435,53 @@ export function GestionAdherents() {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total adhérents</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+        {statsCards.map((stat, index) => (
+          <button
+            key={index}
+            onClick={() => handleStatClick(stat.filter)}
+            disabled={!stat.filter}
+            className={`bg-white rounded-lg p-6 shadow-sm border border-gray-200 text-left group transition-all duration-200 w-full ${
+              stat.filter 
+                ? 'hover:shadow-md hover:border-gray-300 cursor-pointer' 
+                : 'cursor-default'
+            } ${
+              stat.filter === filtreStatut 
+                ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50' 
+                : ''
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className={`text-3xl font-bold transition-colors ${
+                  stat.filter && stat.filter === filtreStatut
+                    ? 'text-blue-600'
+                    : stat.filter
+                    ? `${stat.iconColor.replace('text-', 'text-')} group-hover:text-blue-600`
+                    : stat.iconColor
+                }`}>
+                  {stat.value}
+                </p>
+              </div>
+              <div className={`p-3 rounded-full ${stat.iconBg} ${
+                stat.filter ? 'group-hover:scale-110' : ''
+              } transition-transform`}>
+                <stat.icon className={`w-6 h-6 ${
+                  stat.filter && stat.filter === filtreStatut
+                    ? 'text-blue-600'
+                    : stat.filter
+                    ? `${stat.iconColor} group-hover:text-blue-600`
+                    : stat.iconColor
+                } transition-colors`} />
+              </div>
             </div>
-            <div className="p-3 rounded-full bg-blue-100">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Actifs</p>
-              <p className="text-3xl font-bold text-green-600">{stats.actifs}</p>
-            </div>
-            <div className="p-3 rounded-full bg-green-100">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Inactifs</p>
-              <p className="text-3xl font-bold text-gray-600">{stats.inactifs}</p>
-            </div>
-            <div className="p-3 rounded-full bg-gray-100">
-              <Users className="w-6 h-6 text-gray-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Suspendus</p>
-              <p className="text-3xl font-bold text-red-600">{stats.suspendus}</p>
-            </div>
-            <div className="p-3 rounded-full bg-red-100">
-              <Users className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Membres famille</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.totalMembres}</p>
-            </div>
-            <div className="p-3 rounded-full bg-purple-100">
-              <User className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+            {stat.filter && (
+              <div className="mt-2 text-xs text-gray-500 group-hover:text-blue-600 transition-colors">
+                Cliquez pour filtrer
+              </div>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Filtres et recherche */}

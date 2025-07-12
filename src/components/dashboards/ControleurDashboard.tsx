@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock, User, Filter, Search, Eye, Download } from 'lucide-react';
@@ -6,6 +7,7 @@ import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock, User, Filt
 export function ControleurDashboard() {
   const { user } = useAuth();
   const { getDemandesByRole, updateDemandeStatut } = useDemandes();
+  const navigate = useNavigate();
   
   // Fonctions utilitaires déclarées en premier pour éviter les erreurs de référence
   const getTypeLabel = (type: string) => {
@@ -123,55 +125,82 @@ export function ControleurDashboard() {
         <div className="space-y-6">
           {/* Statistiques */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total demandes</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.total}</p>
                 </div>
-                <FileText className="w-8 h-8 text-gray-400" />
+                <FileText className="w-8 h-8 text-gray-400 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
               </div>
-            </div>
+            </button>
             
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <button 
+              onClick={() => {
+                setFiltreStatut('en_attente');
+                setRecherche('');
+              }}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">En attente</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.enAttente}</p>
+                  <p className="text-2xl font-bold text-yellow-600 group-hover:text-blue-600 transition-colors">{stats.enAttente}</p>
                 </div>
-                <Clock className="w-8 h-8 text-yellow-400" />
+                <Clock className="w-8 h-8 text-yellow-400 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <button 
+              onClick={() => {
+                setFiltreStatut('acceptee');
+                setRecherche('');
+              }}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Approuvées</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.approuvees}</p>
+                  <p className="text-2xl font-bold text-blue-600 group-hover:text-blue-600 transition-colors">{stats.approuvees}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-blue-400" />
+                <CheckCircle className="w-8 h-8 text-blue-400 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <button 
+              onClick={() => {
+                setFiltreStatut('rejetee');
+                setRecherche('');
+              }}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Rejetées</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.rejetees}</p>
+                  <p className="text-2xl font-bold text-red-600 group-hover:text-blue-600 transition-colors">{stats.rejetees}</p>
                 </div>
-                <XCircle className="w-8 h-8 text-red-400" />
+                <XCircle className="w-8 h-8 text-red-400 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <button 
+              onClick={() => {
+                setFiltreStatut('validee');
+                setRecherche('');
+              }}
+              className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Validées</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.validees}</p>
+                  <p className="text-2xl font-bold text-green-600 group-hover:text-blue-600 transition-colors">{stats.validees}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
+                <CheckCircle className="w-8 h-8 text-green-400 group-hover:text-blue-600 group-hover:scale-110 transition-all" />
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Filtres et recherche */}

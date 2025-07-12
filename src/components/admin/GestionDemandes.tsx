@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -18,6 +19,7 @@ import {
 export function GestionDemandes() {
   const { demandes, updateDemandeStatut } = useDemandes();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [filtreType, setFiltreType] = useState<string>('tous');
@@ -65,6 +67,20 @@ export function GestionDemandes() {
       default: return <FileText className="w-4 h-4" />;
     }
   };
+
+  // Initialiser les filtres selon les paramètres URL
+  React.useEffect(() => {
+    const statutParam = searchParams.get('statut');
+    const typeParam = searchParams.get('type');
+    
+    if (statutParam) {
+      setFiltreStatut(statutParam);
+    }
+    
+    if (typeParam) {
+      setFiltreType(typeParam);
+    }
+  }, [searchParams]);
 
   // Filtrage des demandes
   const demandesFiltrees = demandes.filter(demande => {

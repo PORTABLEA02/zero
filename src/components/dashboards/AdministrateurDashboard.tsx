@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { 
@@ -15,6 +16,7 @@ import {
 export function AdministrateurDashboard() {
   const { user } = useAuth();
   const { demandes } = useDemandes();
+  const navigate = useNavigate();
 
 
   // Calcul des statistiques
@@ -34,7 +36,8 @@ export function AdministrateurDashboard() {
       change: '+0%',
       icon: Users,
       iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      path: '/admin/adherents'
     },
     {
       title: 'Demandes en attente',
@@ -42,7 +45,8 @@ export function AdministrateurDashboard() {
       change: '+0%',
       icon: Clock,
       iconBg: 'bg-orange-100',
-      iconColor: 'text-orange-600'
+      iconColor: 'text-orange-600',
+      path: '/admin/demandes?statut=acceptee'
     },
     {
       title: 'Demandes traitées',
@@ -50,7 +54,8 @@ export function AdministrateurDashboard() {
       change: '+0%',
       icon: CheckCircle,
       iconBg: 'bg-green-100',
-      iconColor: 'text-green-600'
+      iconColor: 'text-green-600',
+      path: '/admin/demandes?statut=validee'
     },
     {
       title: 'Demandes ce mois',
@@ -58,7 +63,8 @@ export function AdministrateurDashboard() {
       change: '+0%',
       icon: FileText,
       iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      path: '/admin/demandes'
     }
   ];
 
@@ -73,21 +79,25 @@ export function AdministrateurDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statsCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <button 
+            key={index} 
+            onClick={() => navigate(stat.path)}
+            className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 text-left group cursor-pointer w-full"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stat.value}</p>
                 <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="inline w-4 h-4 mr-1" />
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-3 rounded-full ${stat.iconBg}`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              <div className={`p-3 rounded-full ${stat.iconBg} group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-6 h-6 ${stat.iconColor} group-hover:text-blue-600 transition-colors`} />
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
