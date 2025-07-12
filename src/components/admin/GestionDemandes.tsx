@@ -351,6 +351,48 @@ export function GestionDemandes() {
                 </div>
               </div>
 
+              {demandeSelectionnee.pieceJointe && (
+                <div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-1">Pièce justificative</h5>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.pieceJointe.nom}</p>
+                        <p className="text-xs text-gray-500">
+                          {(demandeSelectionnee.pieceJointe.taille / 1024 / 1024).toFixed(2)} MB • 
+                          Uploadé le {new Date(demandeSelectionnee.pieceJointe.dateUpload).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          window.open(`#${demandeSelectionnee.pieceJointe?.url}`, '_blank');
+                        }}
+                        className="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Voir
+                      </button>
+                      <button
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = `#${demandeSelectionnee.pieceJointe?.url}`;
+                          link.download = demandeSelectionnee.pieceJointe?.nom || 'document';
+                          link.click();
+                        }}
+                        className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Télécharger
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {demandeSelectionnee.controleurNom && (
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Traité par</h5>

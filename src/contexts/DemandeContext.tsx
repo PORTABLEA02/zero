@@ -25,7 +25,14 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
       membreNom: 'Jean Dupont',
       controleurId: '2',
       controleurNom: 'Marie Martin',
-      dateTraitement: '2024-01-18'
+      dateTraitement: '2024-01-18',
+      pieceJointe: {
+        nom: 'certificat_mariage_dupont.pdf',
+        taille: 245760,
+        type: 'application/pdf',
+        dateUpload: '2024-01-15T10:30:00Z',
+        url: 'uploads/1705312200000_certificat_mariage_dupont.pdf'
+      }
     },
     {
       id: '2',
@@ -42,9 +49,26 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
   ]);
 
   const createDemande = (data: DemandeFormData, membreId: string, membreNom: string) => {
+    // Simuler l'upload du fichier et créer l'objet pieceJointe
+    let pieceJointeInfo = undefined;
+    if (data.fichierPieceJointe) {
+      pieceJointeInfo = {
+        nom: data.fichierPieceJointe.name,
+        taille: data.fichierPieceJointe.size,
+        type: data.fichierPieceJointe.type,
+        dateUpload: new Date().toISOString(),
+        url: `uploads/${Date.now()}_${data.fichierPieceJointe.name}` // URL simulée
+      };
+    }
+
     const nouvelleDemande: Demande = {
       id: Date.now().toString(),
-      ...data,
+      type: data.type,
+      beneficiaireId: data.beneficiaireId,
+      beneficiaireNom: data.beneficiaireNom,
+      beneficiaireRelation: data.beneficiaireRelation,
+      montant: data.montant,
+      pieceJointe: pieceJointeInfo,
       dateSoumission: new Date().toISOString().split('T')[0],
       statut: 'en_attente',
       membreId,

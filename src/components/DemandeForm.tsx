@@ -138,6 +138,11 @@ export function DemandeForm() {
       } else if (!validateEventDate(formData.dateSurvenance, formData.type)) {
         newErrors.dateSurvenance = dateError;
       }
+      
+      // Validation de la pièce justificative pour les allocations
+      if (!formData.fichierPieceJointe && !formData.pieceJointe?.trim()) {
+        newErrors.pieceJointe = 'Une pièce justificative est requise pour ce type de demande';
+      }
     }
     
     // Validation des informations de paiement
@@ -510,17 +515,111 @@ export function DemandeForm() {
           </div>
 
           <div>
-            <label htmlFor="pieceJointe" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-              Pièce jointe (optionnel)
+            <label htmlFor="pieceJointe" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Pièce justificative {requiresEventDate(formData.type) ? <span className="text-red-500">*</span> : '(optionnel)'}
             </label>
-            <input
-              type="text"
-              id="pieceJointe"
-              value={formData.pieceJointe || ''}
-              onChange={(e) => handleChange('pieceJointe', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              placeholder="Nom du fichier ou description"
-            />
+            
+            {/* Zone de téléchargement de fichier */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+              <input
+                type="file"
+                id="pieceJointe"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Stocker le fichier dans le state
+                    setFormData(prev => ({
+                      ...prev,
+                      fichierPieceJointe: file,
+                      pieceJointe: file.name
+                    }));
+                    // Effacer l'erreur si elle existe
+                    if (errors.pieceJointe) {
+                      setErrors(prev => ({ ...prev, pieceJointe: undefined }));
+                    }
+                  }
+                }}
+                className="hidden"
+              />
+              <label
+                htmlFor="pieceJointe"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span className="text-sm text-gray-600 mb-1">
+                  Cliquez pour sélectionner un fichier
+                </span>
+                <span className="text-xs text-gray-500">
+                  PDF, JPG, PNG, DOC (max. 5MB)
+                </span>
+              </label>
+            </div>
+            
+            {/* Fichier sélectionné */}
+            {(formData.pieceJointe || formData.fichierPieceJointe) && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div>
+                      <span className="text-sm text-blue-800 font-medium">
+                        {formData.fichierPieceJointe?.name || formData.pieceJointe}
+                      </span>
+                      {formData.fichierPieceJointe && (
+                        <div className="text-xs text-blue-600">
+                          {(formData.fichierPieceJointe.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        pieceJointe: '',
+                        fichierPieceJointe: undefined
+                      }));
+                      // Réinitialiser l'input file
+                      const fileInput = document.getElementById('pieceJointe') as HTMLInputElement;
+                      if (fileInput) fileInput.value = '';
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Messages d'aide selon le type de demande */}
+            <div className="mt-2 text-xs text-gray-600">
+              {formData.type === 'mariage' && (
+                <p>• Certificat de mariage ou acte de mariage requis</p>
+              )}
+              {formData.type === 'naissance' && (
+                <p>• Acte de naissance ou certificat de naissance requis</p>
+              )}
+              {formData.type === 'deces' && (
+                <p>• Acte de décès ou certificat de décès requis</p>
+              )}
+              {formData.type === 'pret_social' && (
+                <p>• Justificatifs de revenus, pièce d'identité (optionnel)</p>
+              )}
+              {formData.type === 'pret_economique' && (
+                <p>• Business plan, justificatifs financiers (optionnel)</p>
+              )}
+            </div>
+            
+            {/* Erreur de validation */}
+            {errors.pieceJointe && (
+              <p className="text-red-500 text-xs mt-1">{errors.pieceJointe}</p>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">

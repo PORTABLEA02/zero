@@ -23,7 +23,13 @@ export interface Demande {
   commentaire?: string;
   dateTraitement?: string;
   dateValidation?: string;
-  pieceJointe?: string;
+  pieceJointe?: {
+    nom: string;
+    taille: number;
+    type: string;
+    dateUpload: string;
+    url?: string; // URL de stockage du fichier
+  };
 }
 
 export interface DemandeFormData {
@@ -35,6 +41,7 @@ export interface DemandeFormData {
   pieceJointe?: string;
   dateSurvenance?: string;
   paiement: PaiementInfo;
+  fichierPieceJointe?: File;
 }
 
 export interface MembreFamille {
