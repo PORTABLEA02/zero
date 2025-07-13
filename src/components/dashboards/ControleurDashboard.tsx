@@ -145,6 +145,7 @@ export function ControleurDashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -323,33 +324,33 @@ export function ControleurDashboard() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-medium text-gray-900">{getTypeLabel(demande.type)} - {demande.beneficiaireNom}</h3>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
-                            {getStatutIcon(demande.statut)}
-                            <span className="ml-1">{getStatutLabel(demande.statut)}</span>
+                          <h3 className="text-lg font-medium text-gray-900">{getTypeLabel(demande.service_type)} - {demande.beneficiary_name}</h3>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.status)}`}>
+                            {getStatutIcon(demande.status)}
+                            <span className="ml-1">{getStatutLabel(demande.status)}</span>
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{getTypeLabel(demande.type)}</p>
+                        <p className="text-sm text-gray-600 mt-1">{getTypeLabel(demande.service_type)}</p>
                         <div className="flex items-center mt-2 text-sm text-gray-600">
                           <User className="w-4 h-4 mr-1" />
-                          {demande.membreNom}
+                          {demande.member_name}
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">Bénéficiaire: {demande.beneficiaireNom} ({demande.beneficiaireRelation})</p>
-                        {demande.montant && (
+                        <p className="text-sm text-gray-500 mt-2">Bénéficiaire: {demande.beneficiary_name} ({demande.beneficiary_relation})</p>
+                        {demande.amount && (
                           <div className="flex items-center mt-2 text-sm text-gray-600">
                             <DollarSign className="w-4 h-4 mr-1" />
-                            {demande.montant.toLocaleString()} FCFA
+                            {demande.amount.toLocaleString()} FCFA
                           </div>
                         )}
                         <div className="flex items-center mt-2 text-sm text-gray-500">
                           <Calendar className="w-4 h-4 mr-1" />
-                          Soumise le {new Date(demande.dateSoumission).toLocaleDateString('fr-FR')}
+                          Soumise le {new Date(demande.submission_date).toLocaleDateString('fr-FR')}
                         </div>
-                        {demande.dateTraitement && (
+                        {demande.processing_date && (
                           <div className="flex items-center mt-1 text-sm text-gray-500">
                             <Calendar className="w-4 h-4 mr-1" />
-                            Traitée le {new Date(demande.dateTraitement).toLocaleDateString('fr-FR')}
-                            {demande.controleurNom && ` par ${demande.controleurNom}`}
+                            Traitée le {new Date(demande.processing_date).toLocaleDateString('fr-FR')}
+                            {demande.controller_name && ` par ${demande.controller_name}`}
                           </div>
                         )}
                       </div>
@@ -361,7 +362,7 @@ export function ControleurDashboard() {
                           <Eye className="w-4 h-4 inline mr-2" />
                           Examiner
                         </button>
-                        {demande.statut === 'en_attente' && (
+                        {demande.status === 'en_attente' && (
                           <div className="space-y-2">
                             <button
                               onClick={() => {
@@ -415,34 +416,34 @@ export function ControleurDashboard() {
                 <div className="space-y-4 mb-6">
                   <div>
                     <h4 className="font-medium text-gray-900">
-                      {getTypeLabel(demandeSelectionnee.type)} - {demandeSelectionnee.beneficiaireNom}
+                      {getTypeLabel(demandeSelectionnee.service_type)} - {demandeSelectionnee.beneficiary_name}
                     </h4>
-                    <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.type)}</p>
+                    <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.service_type)}</p>
                   </div>
 
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-1">Membre</h5>
-                    <p className="text-sm text-gray-600">{demandeSelectionnee.membreNom}</p>
+                    <p className="text-sm text-gray-600">{demandeSelectionnee.member_name}</p>
                   </div>
 
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-1">Bénéficiaire</h5>
-                    <p className="text-sm text-gray-600">{demandeSelectionnee.beneficiaireNom} ({demandeSelectionnee.beneficiaireRelation})</p>
+                    <p className="text-sm text-gray-600">{demandeSelectionnee.beneficiary_name} ({demandeSelectionnee.beneficiary_relation})</p>
                   </div>
 
-                  {demandeSelectionnee.montant && (
+                  {demandeSelectionnee.amount && (
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 mb-1">Montant demandé</h5>
-                      <p className="text-sm text-gray-600">{demandeSelectionnee.montant.toLocaleString()} FCFA</p>
+                      <p className="text-sm text-gray-600">{demandeSelectionnee.amount.toLocaleString()} FCFA</p>
                     </div>
                   )}
 
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-1">Date de soumission</h5>
-                    <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.dateSoumission).toLocaleDateString('fr-FR')}</p>
+                    <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.submission_date).toLocaleDateString('fr-FR')}</p>
                   </div>
 
-                  {demandeSelectionnee.pieceJointe && (
+                  {demandeSelectionnee.justification_document && (
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 mb-1">Pièce justificative</h5>
                       <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -451,18 +452,17 @@ export function ControleurDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.pieceJointe.nom}</p>
+                            <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.justification_document.nom}</p>
                             <p className="text-xs text-gray-500">
-                              {(demandeSelectionnee.pieceJointe.taille / 1024 / 1024).toFixed(2)} MB • 
-                              Uploadé le {new Date(demandeSelectionnee.pieceJointe.dateUpload).toLocaleDateString('fr-FR')}
+                              {(demandeSelectionnee.justification_document.taille / 1024 / 1024).toFixed(2)} MB • 
+                              Uploadé le {new Date(demandeSelectionnee.justification_document.dateUpload).toLocaleDateString('fr-FR')}
                             </p>
                           </div>
                         </div>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
-                              // Simuler l'ouverture du fichier
-                              window.open(`#${demandeSelectionnee.pieceJointe?.url}`, '_blank');
+                              window.open(`${demandeSelectionnee.justification_document?.url}`, '_blank');
                             }}
                             className="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
                           >
@@ -471,10 +471,9 @@ export function ControleurDashboard() {
                           </button>
                           <button
                             onClick={() => {
-                              // Simuler le téléchargement
                               const link = document.createElement('a');
-                              link.href = `#${demandeSelectionnee.pieceJointe?.url}`;
-                              link.download = demandeSelectionnee.pieceJointe?.nom || 'document';
+                              link.href = `${demandeSelectionnee.justification_document?.url}`;
+                              link.download = demandeSelectionnee.justification_document?.nom || 'document';
                               link.click();
                             }}
                             className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -489,21 +488,21 @@ export function ControleurDashboard() {
 
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-1">Statut actuel</h5>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demandeSelectionnee.statut)}`}>
-                      {getStatutIcon(demandeSelectionnee.statut)}
-                      <span className="ml-1">{getStatutLabel(demandeSelectionnee.statut)}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demandeSelectionnee.status)}`}>
+                      {getStatutIcon(demandeSelectionnee.status)}
+                      <span className="ml-1">{getStatutLabel(demandeSelectionnee.status)}</span>
                     </span>
                   </div>
 
-                  {demandeSelectionnee.commentaire && (
+                  {demandeSelectionnee.comment && (
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 mb-1">Commentaire précédent</h5>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{demandeSelectionnee.commentaire}</p>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{demandeSelectionnee.comment}</p>
                     </div>
                   )}
                 </div>
 
-                {demandeSelectionnee.statut === 'en_attente' && (
+                {demandeSelectionnee.status === 'en_attente' && (
                   <>
                     <div className="mb-6">
                       <label htmlFor="commentaire" className="block text-sm font-medium text-gray-700 mb-2">
@@ -561,7 +560,7 @@ export function ControleurDashboard() {
                   </>
                 )}
 
-                {demandeSelectionnee.statut !== 'en_attente' && (
+                {demandeSelectionnee.status !== 'en_attente' && (
                   <div className="flex justify-end">
                     <button
                       onClick={() => {

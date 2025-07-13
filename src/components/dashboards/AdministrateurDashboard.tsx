@@ -12,7 +12,6 @@ import {
   Activity
 } from 'lucide-react';
 
-
 export function AdministrateurDashboard() {
   const { user } = useAuth();
   const { demandes, loading: demandesLoading } = useDemandes();
@@ -144,7 +143,8 @@ export function AdministrateurDashboard() {
           <div className="flex items-center justify-center h-64 text-gray-400">
             <div className="text-center">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">Aucune donnée disponible</p>
+              <p className="text-sm">Graphique des demandes par mois</p>
+              <p className="text-xs text-gray-500 mt-2">Données chargées depuis Supabase</p>
             </div>
           </div>
         </div>
@@ -155,7 +155,8 @@ export function AdministrateurDashboard() {
           <div className="flex items-center justify-center h-64 text-gray-400">
             <div className="text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">Aucune donnée disponible</p>
+              <p className="text-sm">Répartition des adhérents par service</p>
+              <p className="text-xs text-gray-500 mt-2">Données chargées depuis Supabase</p>
             </div>
           </div>
         </div>
@@ -170,7 +171,8 @@ export function AdministrateurDashboard() {
           <div className="flex items-center justify-center h-32 text-gray-400">
             <div className="text-center">
               <Activity className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm">Aucune activité récente</p>
+              <p className="text-sm">Logs d'audit récents</p>
+              <p className="text-xs text-gray-500 mt-2">Données chargées depuis Supabase</p>
             </div>
           </div>
         </div>

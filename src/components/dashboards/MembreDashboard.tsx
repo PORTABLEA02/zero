@@ -16,17 +16,14 @@ import {
   History,
   UserPlus
 } from 'lucide-react';
-import { DemandeFormData } from '../../types';
-
 
 export function MembreDashboard() {
   const { user } = useAuth();
   const { demandes, loading: demandesLoading } = useDemandes();
-  const { loading: familleLoading } = useFamille();
+  const { membresFamille, loading: familleLoading } = useFamille();
   const navigate = useNavigate();
   
   const [mesDemandes, setMesDemandes] = useState([]);
-  const [membresFamille, setMembresFamille] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Charger les données au montage du composant
@@ -37,15 +34,10 @@ export function MembreDashboard() {
       try {
         setLoading(true);
         
-        // Charger les demandes du membre
+        // Charger les demandes du membre depuis Supabase
         const { DemandService } = await import('../../services/demandService');
         const demandesData = await DemandService.getDemandsByMember(user.id);
         setMesDemandes(demandesData);
-        
-        // Charger les membres de famille
-        const { FamilyService } = await import('../../services/familyService');
-        const familleData = await FamilyService.getFamilyMembers(user.id);
-        setMembresFamille(familleData);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -55,6 +47,14 @@ export function MembreDashboard() {
 
     loadData();
   }, [user]);
+
+  // Mettre à jour les demandes quand le contexte change
+  React.useEffect(() => {
+    if (demandes.length > 0) {
+      const userDemands = demandes.filter(d => d.member_id === user?.id);
+      setMesDemandes(userDemands);
+    }
+  }, [demandes, user]);
 
   if (loading || demandesLoading || familleLoading) {
     return (
@@ -71,12 +71,11 @@ export function MembreDashboard() {
     );
   }
 
-
   const stats = {
     soumises: mesDemandes.length,
     enAttente: mesDemandes.filter(d => d.status === 'en_attente').length,
     approuvees: mesDemandes.filter(d => d.status === 'acceptee' || d.status === 'validee').length,
-    membresFamille: membresFamille.length
+    membresFamille: membresFamille.filter(m => m.member_of_user_id === user?.id).length
   };
 
   const statsCards = [
@@ -138,13 +137,33 @@ export function MembreDashboard() {
     }
   ];
 
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'mariage': 'Allocation Mariage',
+      'naissance': 'Allocation Naissance',
+      'deces': 'Allocation Décès',
+      'pret_social': 'Prêt Social',
+      'pret_economique': 'Prêt Économique'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
+
+  const getStatutLabel = (statut: string) => {
+    const labels = {
+      'en_attente': 'En attente',
+      'acceptee': 'Acceptée',
+      'rejetee': 'Rejetée',
+      'validee': 'Validée'
+    };
+    return labels[statut as keyof typeof labels] || statut;
+  };
 
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-sm sm:text-base text-gray-600">Bienvenue sur votre espace personnel MuSAIB, Jean Dupont</p>
+        <p className="text-sm sm:text-base text-gray-600">Bienvenue sur votre espace personnel MuSAIB, {user?.name}</p>
       </div>
 
       {/* Stats Cards */}
@@ -200,31 +219,25 @@ export function MembreDashboard() {
                   <div key={demande.id} className="flex items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="min-w-0 flex-1 mr-3">
                       <p className="text-sm sm:text-base font-medium text-gray-900 truncate">
-                        {demande.type === 'mariage' ? 'Allocation Mariage' :
-                         demande.type === 'naissance' ? 'Allocation Naissance' :
-                         demande.type === 'deces' ? 'Allocation Décès' :
-                         demande.type === 'pret_social' ? 'Prêt Social' :
-                         'Prêt Économique'} - {demande.beneficiaireNom}
+                        {getTypeLabel(demande.service_type)} - {demande.beneficiary_name}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-500">
-                        {new Date(demande.dateSoumission).toLocaleDateString('fr-FR')}
+                        {new Date(demande.submission_date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
                     <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
-                      demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                      demande.statut === 'acceptee' ? 'bg-blue-100 text-blue-800' :
-                      demande.statut === 'validee' ? 'bg-green-100 text-green-800' :
+                      demande.status === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                      demande.status === 'acceptee' ? 'bg-blue-100 text-blue-800' :
+                      demande.status === 'validee' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
                     }`}>
                       <span className="hidden sm:inline">
-                        {demande.statut === 'en_attente' ? 'En attente' :
-                         demande.statut === 'acceptee' ? 'Acceptée' :
-                         demande.statut === 'validee' ? 'Validée' : 'Rejetée'}
+                        {getStatutLabel(demande.status)}
                       </span>
                       <span className="sm:hidden">
-                        {demande.statut === 'en_attente' ? 'Attente' :
-                         demande.statut === 'acceptee' ? 'OK' :
-                         demande.statut === 'validee' ? 'Validée' : 'KO'}
+                        {demande.status === 'en_attente' ? 'Attente' :
+                         demande.status === 'acceptee' ? 'OK' :
+                         demande.status === 'validee' ? 'Validée' : 'KO'}
                       </span>
                     </span>
                   </div>

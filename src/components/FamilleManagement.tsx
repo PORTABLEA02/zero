@@ -9,17 +9,51 @@ import { Plus, User, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-re
 
 export function FamilleManagement() {
   const { user } = useAuth();
-  const { getMembresFamilleByMembre, ajouterMembreFamille, supprimerMembreFamille, canAddMember } = useFamille();
+  const { getMembresFamilleByMembre, ajouterMembreFamille, supprimerMembreFamille, canAddMember, membresFamille } = useFamille();
   const [showForm, setShowForm] = useState(false);
+  const [userFamilyMembers, setUserFamilyMembers] = useState([]);
+  const [loadingFamily, setLoadingFamily] = useState(true);
   const navigate = useNavigate();
   
-  const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
+  // Load family members for the current user
+  React.useEffect(() => {
+    const loadFamilyMembers = async () => {
+      if (!user) {
+        setUserFamilyMembers([]);
+        setLoadingFamily(false);
+        return;
+      }
+
+      try {
+        setLoadingFamily(true);
+        const familyData = await getMembresFamilleByMembre(user.id);
+        setUserFamilyMembers(Array.isArray(familyData) ? familyData : []);
+      } catch (error) {
+        console.error('Error loading family members:', error);
+        setUserFamilyMembers([]);
+      } finally {
+        setLoadingFamily(false);
+      }
+    };
+
+    loadFamilyMembers();
+  }, [user, getMembresFamilleByMembre, membresFamille]);
 
   const handleAjouterMembre = (data: MembreFamilleFormData): boolean => {
     if (user) {
       const success = ajouterMembreFamille(data, user.id);
       if (success) {
         setShowForm(false);
+        // Reload family members after adding
+        const loadFamilyMembers = async () => {
+          try {
+            const familyData = await getMembresFamilleByMembre(user.id);
+            setUserFamilyMembers(Array.isArray(familyData) ? familyData : []);
+          } catch (error) {
+            console.error('Error reloading family members:', error);
+          }
+        };
+        loadFamilyMembers();
       }
       return success;
     }
@@ -65,6 +99,25 @@ export function FamilleManagement() {
     return age;
   };
 
+  if (loadingFamily) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium mb-4"
+          >
+            ← Retour au dashboard
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion de la famille</h1>
+          <p className="text-sm sm:text-base text-gray-600">Chargement...</p>
+        </div>
+        <div className="animate-pulse">
+          <div className="bg-gray-200 rounded-lg h-32"></div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
@@ -77,7 +130,7 @@ export function FamilleManagement() {
             ← Retour au dashboard
           </button>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestion de la famille</h1>
-          <p className="text-sm sm:text-base text-gray-600">Gérez les membres de votre famille ({membresFamille.length} membre(s))</p>
+          <p className="text-sm sm:text-base text-gray-600">Gérez les membres de votre famille ({userFamilyMembers.length} membre(s))</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -102,7 +155,7 @@ export function FamilleManagement() {
       </div>
 
       {/* Liste des membres */}
-      {membresFamille.length === 0 ? (
+      {userFamilyMembers.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 text-center">
           <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Aucun membre de famille</h3>
@@ -117,7 +170,7 @@ export function FamilleManagement() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {membresFamille.map((membre) => (
+          {userFamilyMembers.map((membre) => (
             <div key={membre.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex justify-between items-start mb-3 space-x-2">
                 <div className="flex items-center">
@@ -125,7 +178,7 @@ export function FamilleManagement() {
                     <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">{membre.prenom} {membre.nom}</h3>
+                    <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">{membre.first_name} {membre.last_name}</h3>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRelationColor(membre.relation)}`}>
                       {getRelationLabel(membre.relation)}
                     </span>
@@ -142,20 +195,20 @@ export function FamilleManagement() {
               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span className="truncate">{new Date(membre.dateNaissance).toLocaleDateString('fr-FR')} ({calculateAge(membre.dateNaissance)} ans)</span>
+                  <span className="truncate">{new Date(membre.date_of_birth).toLocaleDateString('fr-FR')} ({calculateAge(membre.date_of_birth)} ans)</span>
                 </div>
                 <div className="text-xs text-gray-500 truncate">
                   <span className="font-medium">NPI:</span> {membre.npi}
                 </div>
                 <div className="text-xs text-gray-500 truncate">
-                  <span className="font-medium">Acte:</span> {membre.acteNaissance}
+                  <span className="font-medium">Acte:</span> {membre.birth_certificate_ref}
                 </div>
                 <div className="text-xs text-gray-500 truncate">
-                  <span className="font-medium">Ajouté le</span> {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}
+                  <span className="font-medium">Ajouté le</span> {new Date(membre.date_added).toLocaleDateString('fr-FR')}
                 </div>
-                {membre.pieceJustificative && (
+                {membre.justification_document && (
                   <div className="text-xs text-gray-500 truncate">
-                    <span className="font-medium">Pièce:</span> {membre.pieceJustificative.nom}
+                    <span className="font-medium">Pièce:</span> Document joint
                   </div>
                 )}
               </div>
@@ -165,7 +218,7 @@ export function FamilleManagement() {
       )}
 
       {/* Message d'information */}
-      {membresFamille.length > 0 && (
+      {userFamilyMembers.length > 0 && (
         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />

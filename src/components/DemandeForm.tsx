@@ -10,11 +10,36 @@ import { X, CreditCard, Building, Smartphone, User } from 'lucide-react';
 export function DemandeForm() {
   const { user } = useAuth();
   const { createDemande } = useDemandes();
-  const { getMembresFamilleByMembre } = useFamille();
+  const { getMembresFamilleByMembre, membresFamille } = useFamille();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   
-  const membresFamille = user ? getMembresFamilleByMembre(user.id) : [];
+  const [userFamilyMembers, setUserFamilyMembers] = useState([]);
+  const [loadingFamily, setLoadingFamily] = useState(true);
+
+  // Load family members for the current user
+  React.useEffect(() => {
+    const loadFamilyMembers = async () => {
+      if (!user) {
+        setUserFamilyMembers([]);
+        setLoadingFamily(false);
+        return;
+      }
+
+      try {
+        setLoadingFamily(true);
+        const familyData = await getMembresFamilleByMembre(user.id);
+        setUserFamilyMembers(Array.isArray(familyData) ? familyData : []);
+      } catch (error) {
+        console.error('Error loading family members:', error);
+        setUserFamilyMembers([]);
+      } finally {
+        setLoadingFamily(false);
+      }
+    };
+
+    loadFamilyMembers();
+  }, [user, getMembresFamilleByMembre]);
   
   // Montants prédéfinis pour chaque type de service
   const montantsServices = {
@@ -117,9 +142,9 @@ export function DemandeForm() {
       nom: user?.name || '',
       relation: 'Adhérent'
     },
-    ...membresFamille.map(membre => ({
+    ...userFamilyMembers.map(membre => ({
       id: membre.id,
-      nom: `${membre.prenom} ${membre.nom}`,
+      nom: `${membre.first_name} ${membre.last_name}`,
       relation: getRelationLabel(membre.relation)
     }))
   ];
@@ -254,6 +279,14 @@ export function DemandeForm() {
           <p className="text-sm sm:text-base text-gray-600">Créez une nouvelle demande de service</p>
         </div>
         
+        {loadingFamily ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
           <button
             onClick={() => setShowForm(true)}
@@ -263,6 +296,7 @@ export function DemandeForm() {
             Nouvelle demande
           </button>
         </div>
+        )}
       </div>
     );
   }
@@ -304,6 +338,11 @@ export function DemandeForm() {
             <label htmlFor="beneficiaire" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Bénéficiaire de la demande
             </label>
+            {loadingFamily ? (
+              <div className="animate-pulse">
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            ) : (
             <select
               id="beneficiaire"
               value={formData.beneficiaireId}
@@ -319,6 +358,7 @@ export function DemandeForm() {
                 </option>
               ))}
             </select>
+            )}
             {errors.beneficiaireId && <p className="text-red-500 text-xs mt-1">{errors.beneficiaireId}</p>}
           </div>
 

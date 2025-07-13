@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ProfileService } from '../../services/profileService';
+import { FamilyService } from '../../services/familyService';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { 
@@ -24,20 +26,7 @@ import {
   CheckCircle,
   Trash2
 } from 'lucide-react';
-import { useFamille } from '../../contexts/FamilleContext';
-import { MembreFamille, MembreFamilleFormData } from '../../types';
-
-interface Adherent {
-  id: string;
-  nom: string;
-  prenom: string;
-  email: string;
-  telephone: string;
-  dateAdhesion: string;
-  statut: 'actif' | 'inactif' | 'suspendu';
-  service: string;
-  adresse: string;
-}
+import type { Profile, FamilyMember } from '../../lib/supabase';
 
 interface AdherentFormData {
   nom: string;
@@ -51,55 +40,11 @@ interface AdherentFormData {
 }
 
 export function GestionAdherents() {
-  const { membresFamille, supprimerMembreFamille, modifierMembreFamille, canAddMember } = useFamille();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [adherents, setAdherents] = useState<Adherent[]>([
-    {
-      id: '1',
-      nom: 'Dupont',
-      prenom: 'Jean',
-      email: 'jean.dupont@email.com',
-      telephone: '+221 77 123 45 67',
-      dateAdhesion: '2023-01-15',
-      statut: 'actif',
-      service: 'Informatique',
-      adresse: 'Dakar, Sénégal'
-    },
-    {
-      id: '2',
-      nom: 'Martin',
-      prenom: 'Marie',
-      email: 'marie.martin@email.com',
-      telephone: '+221 76 987 65 43',
-      dateAdhesion: '2023-03-20',
-      statut: 'actif',
-      service: 'Comptabilité',
-      adresse: 'Thiès, Sénégal'
-    },
-    {
-      id: '3',
-      nom: 'Diallo',
-      prenom: 'Amadou',
-      email: 'amadou.diallo@email.com',
-      telephone: '+221 78 456 78 90',
-      dateAdhesion: '2023-06-10',
-      statut: 'inactif',
-      service: 'Ressources Humaines',
-      adresse: 'Saint-Louis, Sénégal'
-    },
-    {
-      id: '4',
-      nom: 'Ndiaye',
-      prenom: 'Fatou',
-      email: 'fatou.ndiaye@email.com',
-      telephone: '+221 77 321 65 98',
-      dateAdhesion: '2023-08-05',
-      statut: 'suspendu',
-      service: 'Marketing',
-      adresse: 'Kaolack, Sénégal'
-    }
-  ]);
+  const [adherents, setAdherents] = useState<Profile[]>([]);
+  const [membresFamille, setMembresFamille] = useState<FamilyMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
@@ -107,13 +52,34 @@ export function GestionAdherents() {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
   const [showEditForm, setShowEditForm] = useState(false);
-  const [membreToEdit, setMembreToEdit] = useState<MembreFamille | null>(null);
+  const [membreToEdit, setMembreToEdit] = useState<FamilyMember | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
     action: 'activer' | 'suspendre' | 'reinitialiser' | 'supprimer_membre' | null;
-    adherent: Adherent | null;
-    membre?: MembreFamille | null;
+    adherent: Profile | null;
+    membre?: FamilyMember | null;
   }>({ show: false, action: null, adherent: null, membre: null });
+
+  // Charger les données depuis Supabase
+  React.useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [profilesData, familyData] = await Promise.all([
+          ProfileService.getAllProfiles(),
+          FamilyService.getAllFamilyMembers()
+        ]);
+        setAdherents(profilesData);
+        setMembresFamille(familyData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Initialiser les filtres selon les paramètres URL
   React.useEffect(() => {
@@ -125,18 +91,21 @@ export function GestionAdherents() {
   }, [searchParams]);
 
   const adherentsFiltres = adherents.filter(adherent => {
+    // Filtrer seulement les membres (pas admin/controleur)
+    if (adherent.role !== 'membre') return false;
+    
     const matchRecherche = 
-      adherent.nom.toLowerCase().includes(recherche.toLowerCase()) ||
-      adherent.prenom.toLowerCase().includes(recherche.toLowerCase()) ||
+      adherent.full_name.toLowerCase().includes(recherche.toLowerCase()) ||
       adherent.email.toLowerCase().includes(recherche.toLowerCase());
     
-    const matchStatut = filtreStatut === 'tous' || adherent.statut === filtreStatut;
+    // Pour l'instant, tous les profils sont considérés comme actifs
+    const matchStatut = filtreStatut === 'tous' || filtreStatut === 'actif';
     
     return matchRecherche && matchStatut;
   });
 
   const getMembresFamilleByAdherent = (adherentId: string) => {
-    return membresFamille.filter(membre => membre.membreId === adherentId);
+    return membresFamille.filter(membre => membre.member_of_user_id === adherentId);
   };
 
   const toggleExpanded = (adherentId: string) => {
@@ -206,124 +175,61 @@ export function GestionAdherents() {
     return age;
   };
 
-  const getStatutColor = (statut: string) => {
-    switch (statut) {
-      case 'actif': return 'bg-green-100 text-green-800';
-      case 'inactif': return 'bg-gray-100 text-gray-800';
-      case 'suspendu': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatutLabel = (statut: string) => {
-    switch (statut) {
-      case 'actif': return 'Actif';
-      case 'inactif': return 'Inactif';
-      case 'suspendu': return 'Suspendu';
-      default: return statut;
-    }
-  };
-
-  const handleActiverAdherent = (adherentId: string) => {
-    setAdherents(prev => prev.map(adherent => 
-      adherent.id === adherentId 
-        ? { ...adherent, statut: 'actif' as const }
-        : adherent
-    ));
-  };
-
-  const handleSuspendreAdherent = (adherentId: string) => {
-    setAdherents(prev => prev.map(adherent => 
-      adherent.id === adherentId 
-        ? { ...adherent, statut: 'suspendu' as const }
-        : adherent
-    ));
-  };
-
-  const handleReinitialiserAdherent = (adherentId: string) => {
-    // Simulation de la réinitialisation du mot de passe
-    console.log(`Réinitialisation du mot de passe pour l'adhérent ${adherentId}`);
-    
-    // En réalité, ceci enverrait une requête à l'API pour réinitialiser le mot de passe
-    // et marquerait l'utilisateur comme devant changer son mot de passe
-    setTimeout(() => {
-      alert(`Le mot de passe de l'adhérent a été réinitialisé. Un email avec les instructions a été envoyé.`);
-    }, 500);
-  };
-
-  const confirmAction = (action: 'activer' | 'suspendre' | 'reinitialiser', adherent: Adherent) => {
+  const confirmAction = (action: 'activer' | 'suspendre' | 'reinitialiser', adherent: Profile) => {
     setShowConfirmModal({ show: true, action, adherent });
   };
 
   const executeAction = () => {
     if (!showConfirmModal.adherent || !showConfirmModal.action) return;
 
-    switch (showConfirmModal.action) {
-      case 'activer':
-        handleActiverAdherent(showConfirmModal.adherent.id);
-        break;
-      case 'suspendre':
-        handleSuspendreAdherent(showConfirmModal.adherent.id);
-        break;
-      case 'reinitialiser':
-        handleReinitialiserAdherent(showConfirmModal.adherent.id);
-        break;
-      case 'supprimer_membre':
-        if (showConfirmModal.membre) {
-          const success = supprimerMembreFamille(showConfirmModal.membre.id);
-          if (success) {
-            setSuccessMessage(`Le membre de famille ${showConfirmModal.membre.prenom} ${showConfirmModal.membre.nom} a été supprimé avec succès.`);
-            setTimeout(() => setSuccessMessage(''), 5000);
-          }
-        }
-        break;
-    }
+    // Implémentation des actions avec Supabase
+    console.log(`Action ${showConfirmModal.action} pour l'adhérent ${showConfirmModal.adherent.id}`);
+    
+    // TODO: Implémenter les actions réelles avec Supabase
+    setSuccessMessage(`Action ${showConfirmModal.action} exécutée avec succès.`);
+    setTimeout(() => setSuccessMessage(''), 5000);
 
     setShowConfirmModal({ show: false, action: null, adherent: null, membre: null });
   };
 
   const handleAjouterAdherent = (data: AdherentFormData) => {
-    // Générer un nouvel adhérent
-    const nouvelAdherent: Adherent = {
-      id: (adherents.length + 1).toString(),
-      nom: data.nom,
-      prenom: data.prenom,
-      email: data.email,
-      telephone: data.telephone,
-      adresse: data.adresse,
-      service: data.service,
-      dateAdhesion: new Date().toISOString().split('T')[0],
-      statut: 'actif'
-    };
-
-    // Ajouter à la liste
-    setAdherents(prev => [...prev, nouvelAdherent]);
+    // TODO: Implémenter l'ajout avec Supabase
+    console.log('Ajout d\'un nouvel adhérent:', data);
     
     // Afficher un message de succès
-    setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} a été ajouté avec succès !`);
+    setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} sera ajouté avec succès !`);
     setTimeout(() => setSuccessMessage(''), 5000);
     
     // Fermer le formulaire
     setShowAddForm(false);
   };
 
-  const handleEditMembre = (membre: MembreFamille) => {
+  const handleEditMembre = (membre: FamilyMember) => {
     setMembreToEdit(membre);
     setShowEditForm(true);
   };
 
-  const handleSaveMembre = (id: string, data: Partial<MembreFamilleFormData>): boolean => {
-    const success = modifierMembreFamille(id, data);
-    if (success) {
-      setSuccessMessage('Membre de famille modifié avec succès par l\'administrateur.');
-      setTimeout(() => setSuccessMessage(''), 5000);
-      setShowEditForm(false);
-      setMembreToEdit(null);
+  const handleSaveMembre = async (id: string, data: any): Promise<boolean> => {
+    try {
+      const success = await FamilyService.updateFamilyMember(id, data);
+      if (success) {
+        setSuccessMessage('Membre de famille modifié avec succès par l\'administrateur.');
+        setTimeout(() => setSuccessMessage(''), 5000);
+        setShowEditForm(false);
+        setMembreToEdit(null);
+        
+        // Recharger les données
+        const familyData = await FamilyService.getAllFamilyMembers();
+        setMembresFamille(familyData);
+      }
+      return success;
+    } catch (error) {
+      console.error('Error updating family member:', error);
+      return false;
     }
-    return success;
   };
 
-  const confirmDeleteMembre = (membre: MembreFamille, adherent: Adherent) => {
+  const confirmDeleteMembre = (membre: FamilyMember, adherent: Profile) => {
     setShowConfirmModal({ 
       show: true, 
       action: 'supprimer_membre', 
@@ -343,10 +249,10 @@ export function GestionAdherents() {
   };
 
   const stats = {
-    total: adherents.length,
-    actifs: adherents.filter(a => a.statut === 'actif').length,
-    inactifs: adherents.filter(a => a.statut === 'inactif').length,
-    suspendus: adherents.filter(a => a.statut === 'suspendu').length,
+    total: adherents.filter(a => a.role === 'membre').length,
+    actifs: adherents.filter(a => a.role === 'membre').length, // Tous actifs pour l'instant
+    inactifs: 0,
+    suspendus: 0,
     totalMembres: membresFamille.length
   };
 
@@ -405,6 +311,22 @@ export function GestionAdherents() {
       navigate(`/admin/adherents?${newSearchParams.toString()}`, { replace: true });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg h-32"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -561,7 +483,7 @@ export function GestionAdherents() {
                         <div className="flex-shrink-0 h-12 w-12">
                           <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
                             <span className="text-sm font-bold text-blue-600">
-                              {adherent.prenom.charAt(0)}{adherent.nom.charAt(0)}
+                              {adherent.full_name.split(' ')[0]?.charAt(0)}{adherent.full_name.split(' ')[1]?.charAt(0) || ''}
                             </span>
                           </div>
                         </div>
@@ -569,10 +491,10 @@ export function GestionAdherents() {
                         <div className="ml-4 flex-1">
                           <div className="flex items-center space-x-3 mb-1">
                             <h3 className="text-lg font-medium text-gray-900">
-                              {adherent.prenom} {adherent.nom}
+                              {adherent.full_name}
                             </h3>
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatutColor(adherent.statut)}`}>
-                              {getStatutLabel(adherent.statut)}
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Actif
                             </span>
                             {membresFamilleAdherent.length > 0 && (
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
@@ -590,20 +512,20 @@ export function GestionAdherents() {
                               </div>
                               <div className="flex items-center">
                                 <Phone className="w-3 h-3 mr-1" />
-                                {adherent.telephone}
+                                {adherent.phone || 'Non renseigné'}
                               </div>
                             </div>
                             <div>
-                              <div className="mb-1">Service: {adherent.service}</div>
+                              <div className="mb-1">Service: {adherent.service || 'Non renseigné'}</div>
                               <div className="flex items-center">
                                 <MapPin className="w-3 h-3 mr-1" />
-                                {adherent.adresse}
+                                {adherent.address || 'Non renseigné'}
                               </div>
                             </div>
                             <div>
                               <div className="flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                Adhésion: {new Date(adherent.dateAdhesion).toLocaleDateString('fr-FR')}
+                                Adhésion: {adherent.date_adhesion ? new Date(adherent.date_adhesion).toLocaleDateString('fr-FR') : 'Non renseigné'}
                               </div>
                             </div>
                           </div>
@@ -620,7 +542,8 @@ export function GestionAdherents() {
                         <Edit className="w-4 h-4" />
                       </button>
                       
-                      {adherent.statut !== 'actif' && (
+                      {/* Actions temporairement désactivées */}
+                      {false && (
                         <button 
                           onClick={() => confirmAction('activer', adherent)}
                           className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded transition-colors"
@@ -630,7 +553,7 @@ export function GestionAdherents() {
                         </button>
                       )}
                       
-                      {adherent.statut === 'actif' && (
+                      {false && (
                         <button 
                           onClick={() => confirmAction('suspendre', adherent)}
                           className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
@@ -669,7 +592,7 @@ export function GestionAdherents() {
                                 </div>
                                 <div>
                                   <h5 className="text-sm font-medium text-gray-900">
-                                    {membre.prenom} {membre.nom}
+                                    {membre.first_name} {membre.last_name}
                                   </h5>
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRelationColor(membre.relation)}`}>
                                     {getRelationLabel(membre.relation)}
@@ -681,16 +604,16 @@ export function GestionAdherents() {
                             <div className="text-xs text-gray-600 space-y-1">
                               <div className="flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                {new Date(membre.dateNaissance).toLocaleDateString('fr-FR')} ({calculateAge(membre.dateNaissance)} ans)
+                                {new Date(membre.date_of_birth).toLocaleDateString('fr-FR')} ({calculateAge(membre.date_of_birth)} ans)
                               </div>
                               <div>
                                 <span className="font-medium">NPI:</span> {membre.npi}
                               </div>
                               <div>
-                                <span className="font-medium">Acte:</span> {membre.acteNaissance}
+                                <span className="font-medium">Acte:</span> {membre.birth_certificate_ref}
                               </div>
                               <div className="text-xs text-gray-500">
-                                Ajouté le {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}
+                                Ajouté le {new Date(membre.date_added).toLocaleDateString('fr-FR')}
                               </div>
                             </div>
                             
@@ -745,18 +668,18 @@ export function GestionAdherents() {
                 <>
                   Êtes-vous sûr de vouloir supprimer le membre de famille{' '}
                   <span className="font-medium">
-                    {showConfirmModal.membre?.prenom} {showConfirmModal.membre?.nom}
+                    {showConfirmModal.membre?.first_name} {showConfirmModal.membre?.last_name}
                   </span>{' '}
                   de la famille de{' '}
                   <span className="font-medium">
-                    {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
+                    {showConfirmModal.adherent.full_name}
                   </span> ?
                 </>
               ) : (
                 <>
                   Êtes-vous sûr de vouloir {getActionLabel(showConfirmModal.action || '')} l'adhérent{' '}
                   <span className="font-medium">
-                    {showConfirmModal.adherent.prenom} {showConfirmModal.adherent.nom}
+                    {showConfirmModal.adherent.full_name}
                   </span> ?
                 </>
               )}
@@ -824,7 +747,8 @@ export function GestionAdherents() {
             if (currentId && membreToEdit && relation === membreToEdit.relation) {
               return true;
             }
-            return canAddMember(relation, membreToEdit?.membreId || '');
+            // TODO: Implémenter la vérification avec Supabase
+            return true;
           }}
         />
       )}

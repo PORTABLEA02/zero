@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useDemandes } from '../contexts/DemandeContext';
+import { DemandService } from '../services/demandService';
 import { Calendar, DollarSign, FileText, Filter, Search, CheckCircle, XCircle, Clock, Eye, Download } from 'lucide-react';
 
 export function HistoriqueDemandes() {
   const { user } = useAuth();
-  const { getDemandesByRole } = useDemandes();
   const [searchParams] = useSearchParams();
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
   const [filtreType, setFiltreType] = useState<string>('tous');
@@ -27,7 +26,7 @@ export function HistoriqueDemandes() {
       
       try {
         setLoading(true);
-        const demandes = await getDemandesByRole('membre', user.id);
+        const demandes = await DemandService.getDemandsByMember(user.id);
         setMesDemandes(Array.isArray(demandes) ? demandes : []);
       } catch (error) {
         console.error('Error loading demandes:', error);
@@ -38,7 +37,7 @@ export function HistoriqueDemandes() {
     };
 
     loadDemandes();
-  }, [user, getDemandesByRole]);
+  }, [user]);
 
   // Initialiser les filtres selon les paramètres URL
   React.useEffect(() => {
@@ -105,14 +104,14 @@ export function HistoriqueDemandes() {
 
   // Filtrage des demandes
   const demandesFiltrees = mesDemandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
+    const matchStatut = filtreStatut === 'tous' || demande.status === filtreStatut;
     
     // Pour les approuvées, on inclut à la fois acceptee et validee
-    const matchStatutApprouvees = filtreStatut === 'acceptee' && (demande.statut === 'acceptee' || demande.statut === 'validee');
+    const matchStatutApprouvees = filtreStatut === 'acceptee' && (demande.status === 'acceptee' || demande.status === 'validee');
     
-    const matchType = filtreType === 'tous' || demande.type === filtreType;
-    const matchRecherche = demande.beneficiaireNom.toLowerCase().includes(recherche.toLowerCase()) ||
-                          getTypeLabel(demande.type).toLowerCase().includes(recherche.toLowerCase());
+    const matchType = filtreType === 'tous' || demande.service_type === filtreType;
+    const matchRecherche = demande.beneficiary_name.toLowerCase().includes(recherche.toLowerCase()) ||
+                          getTypeLabel(demande.service_type).toLowerCase().includes(recherche.toLowerCase());
     
     return (matchStatut || matchStatutApprouvees) && matchType && matchRecherche;
   });
@@ -206,15 +205,15 @@ export function HistoriqueDemandes() {
           <div className="text-xs sm:text-sm text-gray-600">Total demandes</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{mesDemandes.filter(d => d.statut === 'en_attente').length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{mesDemandes.filter(d => d.status === 'en_attente').length}</div>
           <div className="text-xs sm:text-sm text-gray-600">En attente</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-xl sm:text-2xl font-bold text-green-600">{mesDemandes.filter(d => d.statut === 'acceptee' || d.statut === 'validee').length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{mesDemandes.filter(d => d.status === 'acceptee' || d.status === 'validee').length}</div>
           <div className="text-xs sm:text-sm text-gray-600">Approuvées</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <div className="text-xl sm:text-2xl font-bold text-red-600">{mesDemandes.filter(d => d.statut === 'rejetee').length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-red-600">{mesDemandes.filter(d => d.status === 'rejetee').length}</div>
           <div className="text-xs sm:text-sm text-gray-600">Rejetées</div>
         </div>
       </div>
@@ -241,28 +240,28 @@ export function HistoriqueDemandes() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
                       <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate">
-                        {getTypeLabel(demande.type)} - {demande.beneficiaireNom}
+                        {getTypeLabel(demande.service_type)} - {demande.beneficiary_name}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
-                        {getStatutIcon(demande.statut)}
-                        <span className="ml-1">{getStatutLabel(demande.statut)}</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.status)}`}>
+                        {getStatutIcon(demande.status)}
+                        <span className="ml-1">{getStatutLabel(demande.status)}</span>
                       </span>
                     </div>
                     
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{getTypeLabel(demande.type)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{getTypeLabel(demande.service_type)}</p>
                     <p className="text-xs sm:text-sm text-gray-500 mb-3">
-                      Bénéficiaire: {demande.beneficiaireNom} ({demande.beneficiaireRelation})
+                      Bénéficiaire: {demande.beneficiary_name} ({demande.beneficiary_relation})
                     </p>
                     
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
-                        Soumise le {new Date(demande.dateSoumission).toLocaleDateString('fr-FR')}
+                        Soumise le {new Date(demande.submission_date).toLocaleDateString('fr-FR')}
                       </div>
-                      {demande.montant && (
+                      {demande.amount && (
                         <div className="flex items-center">
                           <DollarSign className="w-4 h-4 mr-1" />
-                          {demande.montant.toLocaleString()} FCFA
+                          {demande.amount.toLocaleString()} FCFA
                         </div>
                       )}
                     </div>
@@ -299,20 +298,20 @@ export function HistoriqueDemandes() {
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium text-gray-900">
-                  {getTypeLabel(demandeSelectionnee.type)} - {demandeSelectionnee.beneficiaireNom}
+                  {getTypeLabel(demandeSelectionnee.service_type)} - {demandeSelectionnee.beneficiary_name}
                 </h4>
-                <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.type)}</p>
+                <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.service_type)}</p>
               </div>
 
               <div>
                 <h5 className="text-sm font-medium text-gray-700 mb-1">Bénéficiaire</h5>
-                <p className="text-sm text-gray-600">{demandeSelectionnee.beneficiaireNom} ({demandeSelectionnee.beneficiaireRelation})</p>
+                <p className="text-sm text-gray-600">{demandeSelectionnee.beneficiary_name} ({demandeSelectionnee.beneficiary_relation})</p>
               </div>
 
-              {demandeSelectionnee.montant && (
+              {demandeSelectionnee.amount && (
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Montant</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.montant.toLocaleString()} FCFA</p>
+                  <p className="text-sm text-gray-600">{demandeSelectionnee.amount.toLocaleString()} FCFA</p>
                 </div>
               )}
 
@@ -327,18 +326,18 @@ export function HistoriqueDemandes() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Date de soumission</h5>
-                  <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.dateSoumission).toLocaleDateString('fr-FR')}</p>
+                  <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.submission_date).toLocaleDateString('fr-FR')}</p>
                 </div>
 
-                {demandeSelectionnee.dateTraitement && (
+                {demandeSelectionnee.processing_date && (
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-1">Date de traitement</h5>
-                    <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.dateTraitement).toLocaleDateString('fr-FR')}</p>
+                    <p className="text-sm text-gray-600">{new Date(demandeSelectionnee.processing_date).toLocaleDateString('fr-FR')}</p>
                   </div>
                 )}
               </div>
 
-              {demandeSelectionnee.pieceJointe && (
+              {demandeSelectionnee.justification_document && (
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Pièce justificative</h5>
                   <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -357,7 +356,7 @@ export function HistoriqueDemandes() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
-                          window.open(`#${demandeSelectionnee.pieceJointe?.url}`, '_blank');
+                          window.open(`${demandeSelectionnee.justification_document?.url}`, '_blank');
                         }}
                         className="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
                       >
@@ -367,8 +366,8 @@ export function HistoriqueDemandes() {
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
-                          link.href = `#${demandeSelectionnee.pieceJointe?.url}`;
-                          link.download = demandeSelectionnee.pieceJointe?.nom || 'document';
+                          link.href = `${demandeSelectionnee.justification_document?.url}`;
+                          link.download = demandeSelectionnee.justification_document?.nom || 'document';
                           link.click();
                         }}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -381,17 +380,17 @@ export function HistoriqueDemandes() {
                 </div>
               )}
 
-              {demandeSelectionnee.controleurNom && (
+              {demandeSelectionnee.controller_name && (
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Traité par</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.controleurNom}</p>
+                  <p className="text-sm text-gray-600">{demandeSelectionnee.controller_name}</p>
                 </div>
               )}
 
-              {demandeSelectionnee.commentaire && (
+              {demandeSelectionnee.comment && (
                 <div>
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Commentaire</h5>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{demandeSelectionnee.commentaire}</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{demandeSelectionnee.comment}</p>
                 </div>
               )}
             </div>
