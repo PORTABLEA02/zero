@@ -117,7 +117,7 @@ export function HistoriqueDemandes() {
   });
 
   const demandeSelectionnee = selectedDemande ? mesDemandes.find(d => d.id === selectedDemande) : null;
-
+  console.log('demandeSelectionnee:', demandeSelectionnee);
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
@@ -317,9 +317,9 @@ export function HistoriqueDemandes() {
 
               <div>
                 <h5 className="text-sm font-medium text-gray-700 mb-1">Statut</h5>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demandeSelectionnee.statut)}`}>
-                  {getStatutIcon(demandeSelectionnee.statut)}
-                  <span className="ml-1">{getStatutLabel(demandeSelectionnee.statut)}</span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demandeSelectionnee.status)}`}>
+                  {getStatutIcon(demandeSelectionnee.status)}
+                  <span className="ml-1">{getStatutLabel(demandeSelectionnee.status)}</span>
                 </span>
               </div>
 
@@ -346,17 +346,22 @@ export function HistoriqueDemandes() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.pieceJointe.nom}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {demandeSelectionnee.justification_document.nom || 'Nom inconnu'}
+                        </p>
                         <p className="text-xs text-gray-500">
-                          {(demandeSelectionnee.pieceJointe.taille / 1024 / 1024).toFixed(2)} MB • 
-                          Uploadé le {new Date(demandeSelectionnee.pieceJointe.dateUpload).toLocaleDateString('fr-FR')}
+                          {demandeSelectionnee.justification_document.taille
+                            ? (demandeSelectionnee.justification_document.taille / 1024 / 1024).toFixed(2) + ' MB'
+                            : 'Taille inconnue'}
                         </p>
                       </div>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
-                          window.open(`${demandeSelectionnee.justification_document?.url}`, '_blank');
+                          if (demandeSelectionnee.justification_document.url) {
+                            window.open(demandeSelectionnee.justification_document.url, '_blank');
+                          }
                         }}
                         className="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
                       >
@@ -365,10 +370,12 @@ export function HistoriqueDemandes() {
                       </button>
                       <button
                         onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = `${demandeSelectionnee.justification_document?.url}`;
-                          link.download = demandeSelectionnee.justification_document?.nom || 'document';
-                          link.click();
+                          if (demandeSelectionnee.justification_document.url) {
+                            const link = document.createElement('a');
+                            link.href = demandeSelectionnee.justification_document.url;
+                            link.download = demandeSelectionnee.justification_document.nom || 'document';
+                            link.click();
+                          }
                         }}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                       >
@@ -380,28 +387,6 @@ export function HistoriqueDemandes() {
                 </div>
               )}
 
-              {demandeSelectionnee.controller_name && (
-                <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Traité par</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.controller_name}</p>
-                </div>
-              )}
-
-              {demandeSelectionnee.comment && (
-                <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Commentaire</h5>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{demandeSelectionnee.comment}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setSelectedDemande(null)}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-              >
-                Fermer
-              </button>
             </div>
           </div>
         </div>
