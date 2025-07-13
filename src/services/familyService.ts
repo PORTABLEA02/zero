@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { FamilyMember } from '../lib/supabase';
+import { StorageService } from './storageService';
 
 export interface FamilyMemberFormData {
   first_name: string;
@@ -8,7 +9,7 @@ export interface FamilyMemberFormData {
   birth_certificate_ref: string;
   date_of_birth: string;
   relation: 'epoux' | 'epouse' | 'enfant' | 'pere' | 'mere' | 'beau_pere' | 'belle_mere';
-  justification_document?: any;
+  justification_document?: File;
 }
 
 export class FamilyService {
@@ -34,11 +35,37 @@ export class FamilyService {
 
   static async addFamilyMember(userId: string, memberData: FamilyMemberFormData): Promise<FamilyMember | null> {
     try {
+      let justificationDoc = null;
+      
+      // Upload du fichier si présent
+      if (memberData.justification_document) {
+        const uploadResult = await StorageService.uploadFile(
+          memberData.justification_document,
+          'family'
+        );
+        
+        if (uploadResult) {
+          justificationDoc = {
+            nom: uploadResult.name,
+            url: uploadResult.url,
+            path: uploadResult.path,
+            taille: uploadResult.size,
+            dateUpload: new Date().toISOString()
+          };
+        }
+      }
+
       const { data, error } = await supabase
         .from('family_members')
         .insert([{
           member_of_user_id: userId,
-          ...memberData
+          first_name: memberData.first_name,
+          last_name: memberData.last_name,
+          npi: memberData.npi,
+          birth_certificate_ref: memberData.birth_certificate_ref,
+          date_of_birth: memberData.date_of_birth,
+          relation: memberData.relation,
+          justification_document: justificationDoc
         }])
         .select()
         .single();
@@ -57,9 +84,37 @@ export class FamilyService {
 
   static async updateFamilyMember(memberId: string, updates: Partial<FamilyMemberFormData>): Promise<boolean> {
     try {
+      let updateData: any = { ...updates };
+      
+      // Gérer l'upload du nouveau fichier si présent
+      if (updates.justification_document instanceof File) {
+        const uploadResult = await StorageService.uploadFile(
+          updates.justification_document,
+          'family'
+        );
+        
+        if (uploadResult) {
+          updateData.justification_document = {
+            nom: uploadResult.name,
+            url: uploadResult.url,
+            path: uploadResult.path,
+            taille: uploadResult.size,
+            dateUpload: new Date().toISOString()
+          };
+        } else {
+          delete updateData.justification_document;
+        }
+      } else if (updates.justification_document === null) {
+        // Suppression explicite du document
+        updateData.justification_document = null;
+      } else {
+        // Ne pas modifier le document existant
+        delete updateData.justification_document;
+      }
+
       const { error } = await supabase
         .from('family_members')
-        .update(updates)
+        .update(updateData)
         .eq('id', memberId);
 
       if (error) {

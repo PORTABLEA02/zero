@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
+import { AuditService } from './auditService';
 
 export class ProfileService {
   static async getProfile(userId: string): Promise<Profile | null> {
@@ -34,9 +35,69 @@ export class ProfileService {
         return false;
       }
 
+      // Log de mise à jour de profil
+      await AuditService.createLog(
+        'Mise à jour profil',
+        `Profil mis à jour pour l'utilisateur ${userId}`,
+        'info',
+        'Administration'
+      );
+
       return true;
     } catch (error) {
       console.error('Update profile error:', error);
+      return false;
+    }
+  }
+
+  static async activateUser(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: true })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Activate user error:', error);
+        return false;
+      }
+
+      await AuditService.createLog(
+        'Activation utilisateur',
+        `Utilisateur ${userId} activé`,
+        'success',
+        'Administration'
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Activate user error:', error);
+      return false;
+    }
+  }
+
+  static async suspendUser(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: false })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Suspend user error:', error);
+        return false;
+      }
+
+      await AuditService.createLog(
+        'Suspension utilisateur',
+        `Utilisateur ${userId} suspendu`,
+        'warning',
+        'Administration'
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Suspend user error:', error);
       return false;
     }
   }

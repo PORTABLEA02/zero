@@ -41,21 +41,21 @@ export function FamilleManagement() {
 
   const handleAjouterMembre = (data: MembreFamilleFormData): boolean => {
     if (user) {
-      const success = ajouterMembreFamille(data, user.id);
-      if (success) {
-        setShowForm(false);
-        // Reload family members after adding
-        const loadFamilyMembers = async () => {
-          try {
-            const familyData = await getMembresFamilleByMembre(user.id);
+      // Appel asynchrone géré dans le contexte
+      ajouterMembreFamille(data, user.id).then(success => {
+        if (success) {
+          setShowForm(false);
+          // Reload family members after adding
+          getMembresFamilleByMembre(user.id).then(familyData => {
             setUserFamilyMembers(Array.isArray(familyData) ? familyData : []);
-          } catch (error) {
+          }).catch(error => {
             console.error('Error reloading family members:', error);
-          }
-        };
-        loadFamilyMembers();
-      }
-      return success;
+          });
+        }
+      }).catch(error => {
+        console.error('Error adding family member:', error);
+      });
+      return true; // Retourner true pour fermer le formulaire, la gestion d'erreur se fait dans le then/catch
     }
     return false;
   };

@@ -58,7 +58,18 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
       return;
     }
 
-    const success = onSubmit(formData);
+    // Préparer les données pour le service
+    const familyData = {
+      first_name: formData.prenom,
+      last_name: formData.nom,
+      npi: formData.npi,
+      birth_certificate_ref: formData.acteNaissance,
+      date_of_birth: formData.dateNaissance,
+      relation: formData.relation,
+      justification_document: formData.pieceJustificative
+    };
+    
+    const success = onSubmit(familyData);
     if (success) {
       setFormData({ 
         nom: '', 

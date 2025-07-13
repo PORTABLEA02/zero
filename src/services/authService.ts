@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
+import { AuditService } from './auditService';
 
 export interface AuthUser {
   id: string;
@@ -120,6 +121,110 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error('Update password error:', error);
+      return false;
+    }
+  }
+
+  static async createUser(email: string, password: string, userData: {
+    full_name: string;
+    role: 'membre' | 'controleur' | 'administrateur';
+    phone?: string;
+    address?: string;
+    service?: string;
+  }): Promise<AuthUser | null> {
+    try {
+      // Créer l'utilisateur dans Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: userData.full_name,
+          role: userData.role
+        }
+      });
+
+      if (authError || !authData.user) {
+        console.error('Create user error:', authError);
+        return null;
+      }
+
+      // Le profil sera créé automatiquement par le trigger handle_new_user
+      // Attendre un peu pour que le trigger s'exécute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Mettre à jour le profil avec les informations supplémentaires
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          phone: userData.phone,
+          address: userData.address,
+          service: userData.service,
+          must_change_password: true,
+          is_first_login: true,
+          adhesion_number: userData.role === 'membre' ? `MUS-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}` : null,
+          employee_number: userData.role !== 'membre' ? `EMP-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}` : null,
+          date_adhesion: userData.role === 'membre' ? new Date().toISOString().split('T')[0] : null
+        })
+        .eq('id', authData.user.id);
+
+      if (updateError) {
+        console.error('Update profile error:', updateError);
+      }
+
+      // Log de création d'utilisateur
+      await AuditService.createLog(
+        'Création utilisateur',
+        `Nouvel utilisateur créé: ${userData.full_name} (${email})`,
+        'success',
+        'Administration'
+      );
+
+      return {
+        id: authData.user.id,
+        name: userData.full_name,
+        email: email,
+        role: userData.role
+      };
+    } catch (error) {
+      console.error('Create user error:', error);
+      return null;
+    }
+  }
+
+  static async resetUserPassword(userId: string, email: string): Promise<boolean> {
+    try {
+      // Réinitialiser le mot de passe via l'API Admin
+      const { error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email
+      });
+
+      if (error) {
+        console.error('Reset password error:', error);
+        return false;
+      }
+
+      // Marquer que l'utilisateur doit changer son mot de passe
+      await supabase
+        .from('profiles')
+        .update({
+          must_change_password: true,
+          is_first_login: true
+        })
+        .eq('id', userId);
+
+      // Log de réinitialisation
+      await AuditService.createLog(
+        'Réinitialisation mot de passe',
+        `Mot de passe réinitialisé pour ${email}`,
+        'info',
+        'Administration'
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Reset password error:', error);
       return false;
     }
   }

@@ -56,7 +56,18 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       
-      const nouvelleDemande = await DemandService.createDemande(membreId, membreNom, data);
+      // Préparer les données pour le service
+      const demandData = {
+        service_type: data.type,
+        beneficiary_name: data.beneficiaireNom,
+        beneficiary_relation: data.beneficiaireRelation,
+        amount: data.montant,
+        event_date: data.dateSurvenance,
+        justification_document: data.pieceJointe,
+        payment_info: data.paiement
+      };
+      
+      const nouvelleDemande = await DemandService.createDemand(membreId, membreNom, demandData);
       
       if (nouvelleDemande) {
         // Rafraîchir la liste des demandes
@@ -65,7 +76,7 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
         // Log de création de demande
         await AuditService.createLog(
           'Nouvelle demande',
-          `Demande ${data.service_type} créée par ${membreNom}`,
+          `Demande ${data.type} créée par ${membreNom}`,
           'info',
           'Demandes'
         );

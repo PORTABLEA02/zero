@@ -123,10 +123,7 @@ export function AjouterAdherentForm({ onClose, onSubmit }: AjouterAdherentFormPr
     setIsLoading(true);
     
     try {
-      // Simulation de l'ajout
-      await new Promise(resolve => setTimeout(resolve, 1000));
       onSubmit(formData);
-      onClose();
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'adhérent:', error);
     } finally {

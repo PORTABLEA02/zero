@@ -4,6 +4,7 @@ import { DemandeFormData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemandes } from '../contexts/DemandeContext';
 import { useFamille } from '../contexts/FamilleContext';
+import { DemandService } from '../services/demandService';
 import { X, CreditCard, Building, Smartphone, User } from 'lucide-react';
 
 
@@ -56,7 +57,7 @@ export function DemandeForm() {
     beneficiaireNom: user?.name || '',
     beneficiaireRelation: 'Adhérent',
     montant: montantsServices['mariage'],
-    pieceJointe: '',
+    pieceJointe: undefined,
     dateSurvenance: '',
     paiement: {
       modePaiement: 'mobile_money',
@@ -67,11 +68,21 @@ export function DemandeForm() {
 
   const [errors, setErrors] = useState<Partial<DemandeFormData>>({});
   const [dateError, setDateError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (data: DemandeFormData) => {
+  const handleSubmit = async (data: DemandeFormData) => {
     if (user) {
-      createDemande(data, user.id, user.name);
-      navigate('/dashboard');
+      setIsSubmitting(true);
+      try {
+        const success = await createDemande(data, user.id, user.name);
+        if (success) {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error submitting demand:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -590,8 +601,8 @@ export function DemandeForm() {
                     // Stocker le fichier dans le state
                     setFormData(prev => ({
                       ...prev,
-                      fichierPieceJointe: file,
-                      pieceJointe: file.name
+                      pieceJointe: file,
+                      fichierPieceJointe: file
                     }));
                     // Effacer l'erreur si elle existe
                     if (errors.pieceJointe) {
@@ -618,7 +629,7 @@ export function DemandeForm() {
             </div>
             
             {/* Fichier sélectionné */}
-            {(formData.pieceJointe || formData.fichierPieceJointe) && (
+            {formData.pieceJointe && (
               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -627,13 +638,11 @@ export function DemandeForm() {
                     </svg>
                     <div>
                       <span className="text-sm text-blue-800 font-medium">
-                        {formData.fichierPieceJointe?.name || formData.pieceJointe}
+                        {formData.pieceJointe.name}
                       </span>
-                      {formData.fichierPieceJointe && (
-                        <div className="text-xs text-blue-600">
-                          {(formData.fichierPieceJointe.size / 1024 / 1024).toFixed(2)} MB
-                        </div>
-                      )}
+                      <div className="text-xs text-blue-600">
+                        {(formData.pieceJointe.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
                     </div>
                   </div>
                   <button
@@ -641,7 +650,7 @@ export function DemandeForm() {
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        pieceJointe: '',
+                        pieceJointe: undefined,
                         fichierPieceJointe: undefined
                       }));
                       // Réinitialiser l'input file
@@ -684,18 +693,19 @@ export function DemandeForm() {
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="submit"
-              disabled={!!dateError}
+              disabled={!!dateError || isSubmitting}
               className={`flex-1 py-2 px-4 rounded-md transition-colors text-sm font-medium ${
-                dateError 
+                dateError || isSubmitting
                   ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
-              Soumettre
+              {isSubmitting ? 'Soumission...' : 'Soumettre'}
             </button>
             <button
               type="button"
               onClick={handleCancel}
+              disabled={isSubmitting}
               className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
             >
               Annuler

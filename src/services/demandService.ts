@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Demand } from '../lib/supabase';
+import { StorageService } from './storageService';
 
 export interface DemandFormData {
   service_type: string;
@@ -7,7 +8,7 @@ export interface DemandFormData {
   beneficiary_relation: string;
   amount?: number;
   event_date?: string;
-  justification_document?: any;
+  justification_document?: File;
   payment_info?: any;
 }
 
@@ -73,12 +74,38 @@ export class DemandService {
 
   static async createDemand(memberId: string, memberName: string, demandData: DemandFormData): Promise<Demand | null> {
     try {
+      let justificationDoc = null;
+      
+      // Upload du fichier si présent
+      if (demandData.justification_document) {
+        const uploadResult = await StorageService.uploadFile(
+          demandData.justification_document,
+          'demands'
+        );
+        
+        if (uploadResult) {
+          justificationDoc = {
+            nom: uploadResult.name,
+            url: uploadResult.url,
+            path: uploadResult.path,
+            taille: uploadResult.size,
+            dateUpload: new Date().toISOString()
+          };
+        }
+      }
+
       const { data, error } = await supabase
         .from('demands')
         .insert([{
           member_id: memberId,
           member_name: memberName,
-          ...demandData
+          service_type: demandData.service_type,
+          beneficiary_name: demandData.beneficiary_name,
+          beneficiary_relation: demandData.beneficiary_relation,
+          amount: demandData.amount,
+          event_date: demandData.event_date,
+          justification_document: justificationDoc,
+          payment_info: demandData.payment_info
         }])
         .select()
         .single();

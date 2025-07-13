@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProfileService } from '../../services/profileService';
 import { FamilyService } from '../../services/familyService';
+import { AuthService } from '../../services/authService';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { 
@@ -182,26 +183,83 @@ export function GestionAdherents() {
   const executeAction = () => {
     if (!showConfirmModal.adherent || !showConfirmModal.action) return;
 
-    // Implémentation des actions avec Supabase
-    console.log(`Action ${showConfirmModal.action} pour l'adhérent ${showConfirmModal.adherent.id}`);
+    const executeAsyncAction = async () => {
+      try {
+        let success = false;
+        
+        switch (showConfirmModal.action) {
+          case 'activer':
+            success = await ProfileService.activateUser(showConfirmModal.adherent!.id);
+            break;
+          case 'suspendre':
+            success = await ProfileService.suspendUser(showConfirmModal.adherent!.id);
+            break;
+          case 'reinitialiser':
+            success = await AuthService.resetUserPassword(
+              showConfirmModal.adherent!.id,
+              showConfirmModal.adherent!.email
+            );
+            break;
+          case 'supprimer_membre':
+            if (showConfirmModal.membre) {
+              success = await FamilyService.deleteFamilyMember(showConfirmModal.membre.id);
+            }
+            break;
+        }
+        
+        if (success) {
+          setSuccessMessage(`Action ${showConfirmModal.action} exécutée avec succès.`);
+          
+          // Recharger les données
+          const [profilesData, familyData] = await Promise.all([
+            ProfileService.getAllProfiles(),
+            FamilyService.getAllFamilyMembers()
+          ]);
+          setAdherents(profilesData);
+          setMembresFamille(familyData);
+        } else {
+          setSuccessMessage(`Erreur lors de l'exécution de l'action ${showConfirmModal.action}.`);
+        }
+      } catch (error) {
+        console.error('Error executing action:', error);
+        setSuccessMessage(`Erreur lors de l'exécution de l'action ${showConfirmModal.action}.`);
+      }
+      
+      setTimeout(() => setSuccessMessage(''), 5000);
+    };
     
-    // TODO: Implémenter les actions réelles avec Supabase
-    setSuccessMessage(`Action ${showConfirmModal.action} exécutée avec succès.`);
-    setTimeout(() => setSuccessMessage(''), 5000);
+    executeAsyncAction();
 
     setShowConfirmModal({ show: false, action: null, adherent: null, membre: null });
   };
 
-  const handleAjouterAdherent = (data: AdherentFormData) => {
-    // TODO: Implémenter l'ajout avec Supabase
-    console.log('Ajout d\'un nouvel adhérent:', data);
+  const handleAjouterAdherent = async (data: AdherentFormData) => {
+    try {
+      const newUser = await AuthService.createUser(data.email, data.motDePasse, {
+        full_name: `${data.prenom} ${data.nom}`,
+        role: 'membre',
+        phone: data.telephone,
+        address: data.adresse,
+        service: data.service
+      });
+      
+      if (newUser) {
+        setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} a été ajouté avec succès !`);
+        
+        // Recharger les données
+        const profilesData = await ProfileService.getAllProfiles();
+        setAdherents(profilesData);
+        
+        setShowAddForm(false);
+      } else {
+        setSuccessMessage(`Erreur lors de l'ajout de l'adhérent ${data.prenom} ${data.nom}.`);
+      }
+    } catch (error) {
+      console.error('Error adding adherent:', error);
+      setSuccessMessage(`Erreur lors de l'ajout de l'adhérent ${data.prenom} ${data.nom}.`);
+    }
     
-    // Afficher un message de succès
-    setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} sera ajouté avec succès !`);
     setTimeout(() => setSuccessMessage(''), 5000);
-    
-    // Fermer le formulaire
-    setShowAddForm(false);
   };
 
   const handleEditMembre = (membre: FamilyMember) => {
