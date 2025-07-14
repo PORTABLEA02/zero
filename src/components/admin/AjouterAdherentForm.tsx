@@ -251,7 +251,7 @@ export function AjouterAdherentForm({ onClose, onSubmit }: AjouterAdherentFormPr
                     className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.telephone ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="+221 77 123 45 67"
+                    placeholder="+229 01 97 97 97 97"
                   />
                 </div>
                 {errors.telephone && <p className="text-red-500 text-xs mt-1">{errors.telephone}</p>}

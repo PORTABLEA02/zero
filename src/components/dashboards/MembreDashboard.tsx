@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { useFamille } from '../../contexts/FamilleContext';
-import { TestErrorComponent } from '../TestErrorComponent';
 import { 
   Plus, 
   FileText, 
@@ -271,9 +270,6 @@ export function MembreDashboard() {
           </div>
         </div>
       </div>
-      
-      {/* Composant de test d'erreurs (dev uniquement) */}
-      <TestErrorComponent />
     </div>
   );
 }

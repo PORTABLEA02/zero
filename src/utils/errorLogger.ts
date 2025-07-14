@@ -52,9 +52,7 @@ export class ErrorLogger {
     };
 
     // Log en console pour le développement
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorLogger:', errorEntry);
-    }
+    console.error('ErrorLogger:', errorEntry);
 
     // Ajouter à la queue
     this.errorQueue.push(errorEntry);
@@ -85,9 +83,7 @@ export class ErrorLogger {
     };
 
     // Log en console pour le développement
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Component Error:', errorEntry);
-    }
+    console.error('Component Error:', errorEntry);
 
     this.errorQueue.push(errorEntry);
 
@@ -104,18 +100,16 @@ export class ErrorLogger {
 
     try {
       // En production, remplacez ceci par votre endpoint réel
-      if (process.env.NODE_ENV === 'production') {
-        // Exemple d'envoi vers Supabase ou votre API
-        // await fetch('/api/log-errors', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({ errors: errorsToSend })
-        // });
-        
-        console.log('Errors would be sent to logging service:', errorsToSend);
-      }
+      // Exemple d'envoi vers Supabase ou votre API
+      // await fetch('/api/log-errors', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({ errors: errorsToSend })
+      // });
+      
+      console.log('Errors would be sent to logging service:', errorsToSend);
     } catch (sendError) {
       console.error('Failed to send errors to logging service:', sendError);
       // Remettre les erreurs dans la queue pour un nouvel essai

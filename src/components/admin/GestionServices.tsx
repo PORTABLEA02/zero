@@ -15,58 +15,7 @@ interface Service {
 }
 
 export function GestionServices() {
-  const [services, setServices] = useState<Service[]>([
-    {
-      id: '1',
-      nom: 'Allocation Mariage',
-      description: 'Aide financière pour les frais de mariage',
-      montant: 50000,
-      type: 'allocation',
-      conditions: ['Être membre depuis au moins 6 mois', 'Fournir un certificat de mariage'],
-      actif: true,
-      dateCreation: '2023-01-01'
-    },
-    {
-      id: '2',
-      nom: 'Allocation Naissance',
-      description: 'Aide financière pour l\'arrivée d\'un nouveau-né',
-      montant: 25000,
-      type: 'allocation',
-      conditions: ['Être membre actif', 'Fournir un acte de naissance'],
-      actif: true,
-      dateCreation: '2023-01-01'
-    },
-    {
-      id: '3',
-      nom: 'Allocation Décès',
-      description: 'Aide financière pour les frais funéraires',
-      montant: 75000,
-      type: 'allocation',
-      conditions: ['Être membre ou ayant droit', 'Fournir un acte de décès'],
-      actif: true,
-      dateCreation: '2023-01-01'
-    },
-    {
-      id: '4',
-      nom: 'Prêt Social',
-      description: 'Prêt pour les urgences sociales',
-      montant: 100000,
-      type: 'pret',
-      conditions: ['Être membre depuis au moins 1 an', 'Avoir un garant', 'Remboursement sur 12 mois'],
-      actif: true,
-      dateCreation: '2023-01-01'
-    },
-    {
-      id: '5',
-      nom: 'Prêt Économique',
-      description: 'Prêt pour les activités génératrices de revenus',
-      montant: 200000,
-      type: 'pret',
-      conditions: ['Être membre depuis au moins 2 ans', 'Présenter un business plan', 'Remboursement sur 24 mois'],
-      actif: false,
-      dateCreation: '2023-01-01'
-    }
-  ]);
+  const [services, setServices] = useState<Service[]>([]);
 
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -84,20 +33,18 @@ export function GestionServices() {
       try {
         setLoading(true);
         const servicesData = await ServiceService.getServices();
-        if (servicesData.length > 0) {
-          // Convertir les données Supabase vers le format local
-          const convertedServices = servicesData.map(service => ({
-            id: service.id,
-            nom: service.name,
-            description: service.description || '',
-            montant: service.default_amount || 0,
-            type: service.type as 'allocation' | 'pret',
-            conditions: service.conditions || [],
-            actif: service.is_active,
-            dateCreation: service.created_at
-          }));
-          setServices(convertedServices);
-        }
+        // Convertir les données Supabase vers le format local
+        const convertedServices = servicesData.map(service => ({
+          id: service.id,
+          nom: service.name,
+          description: service.description || '',
+          montant: service.default_amount || 0,
+          type: service.type as 'allocation' | 'pret',
+          conditions: service.conditions || [],
+          actif: service.is_active,
+          dateCreation: service.created_at
+        }));
+        setServices(convertedServices);
       } catch (error) {
         console.error('Error loading services:', error);
       } finally {

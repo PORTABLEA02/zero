@@ -123,26 +123,6 @@ export class ErrorBoundary extends Component<Props, State> {
               Veuillez essayer l'une des options ci-dessous.
             </p>
 
-            {/* Détails de l'erreur en mode développement */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-                <div className="flex items-center mb-2">
-                  <Bug className="h-4 w-4 text-red-600 mr-2" />
-                  <span className="text-sm font-medium text-red-800">Détails de l'erreur (dev)</span>
-                </div>
-                <div className="text-xs text-red-700 font-mono bg-red-100 p-2 rounded overflow-auto max-h-32">
-                  <div className="font-semibold mb-1">Message:</div>
-                  <div className="mb-2">{this.state.error.message}</div>
-                  {this.state.error.stack && (
-                    <>
-                      <div className="font-semibold mb-1">Stack:</div>
-                      <div className="whitespace-pre-wrap">{this.state.error.stack}</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Boutons d'action */}
             <div className="space-y-3">
               <button

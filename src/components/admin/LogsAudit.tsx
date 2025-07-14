@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AuditService } from '../../services/auditService';
+import type { AuditLog } from '../../lib/supabase';
 import { 
   Activity, 
   Calendar, 
@@ -13,98 +15,43 @@ import {
   Clock
 } from 'lucide-react';
 
-interface LogEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
-  type: 'info' | 'warning' | 'error' | 'success';
-  ip: string;
-  module: string;
-}
-
 export function LogsAudit() {
-  const [logs] = useState<LogEntry[]>([
-    {
-      id: '1',
-      timestamp: '2024-01-20T10:30:00Z',
-      user: 'Marie Martin (Contrôleur)',
-      action: 'Demande acceptée',
-      details: 'Demande d\'allocation mariage de Jean Dupont acceptée',
-      type: 'success',
-      ip: '192.168.1.100',
-      module: 'Gestion des demandes'
-    },
-    {
-      id: '2',
-      timestamp: '2024-01-20T09:15:00Z',
-      user: 'Jean Dupont (Membre)',
-      action: 'Nouvelle demande',
-      details: 'Soumission d\'une demande d\'allocation mariage',
-      type: 'info',
-      ip: '192.168.1.105',
-      module: 'Demandes'
-    },
-    {
-      id: '3',
-      timestamp: '2024-01-20T08:45:00Z',
-      user: 'Administrateur MuSAIB',
-      action: 'Importation utilisateurs',
-      details: '45 nouveaux adhérents importés avec succès',
-      type: 'success',
-      ip: '192.168.1.101',
-      module: 'Gestion des adhérents'
-    },
-    {
-      id: '4',
-      timestamp: '2024-01-19T16:20:00Z',
-      user: 'Marie Martin (Contrôleur)',
-      action: 'Demande rejetée',
-      details: 'Demande de prêt social de Amadou Diallo rejetée - Documents incomplets',
-      type: 'warning',
-      ip: '192.168.1.100',
-      module: 'Gestion des demandes'
-    },
-    {
-      id: '5',
-      timestamp: '2024-01-19T14:10:00Z',
-      user: 'Système',
-      action: 'Erreur de connexion',
-      details: 'Tentative de connexion échouée pour l\'utilisateur admin@test.com',
-      type: 'error',
-      ip: '192.168.1.200',
-      module: 'Authentification'
-    },
-    {
-      id: '6',
-      timestamp: '2024-01-19T11:30:00Z',
-      user: 'Administrateur MuSAIB',
-      action: 'Service modifié',
-      details: 'Montant de l\'allocation naissance modifié de 20000 à 25000 FCFA',
-      type: 'info',
-      ip: '192.168.1.101',
-      module: 'Gestion des services'
-    }
-  ]);
-
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filtreType, setFiltreType] = useState<string>('tous');
   const [filtreModule, setFiltreModule] = useState<string>('tous');
   const [recherche, setRecherche] = useState('');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
 
+  // Charger les logs depuis Supabase
+  React.useEffect(() => {
+    const loadLogs = async () => {
+      try {
+        setLoading(true);
+        const logsData = await AuditService.getLogs();
+        setLogs(logsData);
+      } catch (error) {
+        console.error('Error loading logs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLogs();
+  }, []);
+
   const logsFiltres = logs.filter(log => {
-    const matchType = filtreType === 'tous' || log.type === filtreType;
+    const matchType = filtreType === 'tous' || log.log_type === filtreType;
     const matchModule = filtreModule === 'tous' || log.module === filtreModule;
     const matchRecherche = 
-      log.user.toLowerCase().includes(recherche.toLowerCase()) ||
+      (log.user_name || '').toLowerCase().includes(recherche.toLowerCase()) ||
       log.action.toLowerCase().includes(recherche.toLowerCase()) ||
-      log.details.toLowerCase().includes(recherche.toLowerCase());
+      (log.details || '').toLowerCase().includes(recherche.toLowerCase());
     
     let matchDate = true;
     if (dateDebut || dateFin) {
-      const logDate = new Date(log.timestamp);
+      const logDate = new Date(log.log_timestamp);
       if (dateDebut) matchDate = matchDate && logDate >= new Date(dateDebut);
       if (dateFin) matchDate = matchDate && logDate <= new Date(dateFin + 'T23:59:59');
     }
@@ -141,13 +88,45 @@ export function LogsAudit() {
 
   const stats = {
     total: logs.length,
-    info: logs.filter(l => l.type === 'info').length,
-    success: logs.filter(l => l.type === 'success').length,
-    warning: logs.filter(l => l.type === 'warning').length,
-    error: logs.filter(l => l.type === 'error').length
+    info: logs.filter(l => l.log_type === 'info').length,
+    success: logs.filter(l => l.log_type === 'success').length,
+    warning: logs.filter(l => l.log_type === 'warning').length,
+    error: logs.filter(l => l.log_type === 'error').length
   };
 
   const modules = [...new Set(logs.map(log => log.module))];
+
+  const exportLogs = () => {
+    const csvContent = [
+      'Date,Utilisateur,Action,Détails,Type,Module',
+      ...logsFiltres.map(log => 
+        `"${new Date(log.log_timestamp).toLocaleString('fr-FR')}","${log.user_name || 'Système'}","${log.action}","${log.details || ''}","${getTypeLabel(log.log_type)}","${log.module}"`
+      )
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs_audit_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg h-32"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -157,7 +136,10 @@ export function LogsAudit() {
           <h1 className="text-2xl font-bold text-gray-900">Logs & Audit</h1>
           <p className="text-gray-600">Suivi des activités et audit de sécurité ({stats.total} entrées)</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+        <button 
+          onClick={exportLogs}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+        >
           <Download className="w-4 h-4 mr-2" />
           Exporter les logs
         </button>
@@ -321,31 +303,35 @@ export function LogsAudit() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      {getTypeIcon(log.type)}
+                      {getTypeIcon(log.log_type)}
                       <h3 className="text-lg font-medium text-gray-900">{log.action}</h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(log.type)}`}>
-                        {getTypeLabel(log.type)}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(log.log_type)}`}>
+                        {getTypeLabel(log.log_type)}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {log.module}
                       </span>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-3">{log.details}</p>
+                    {log.details && (
+                      <p className="text-sm text-gray-600 mb-3">{log.details}</p>
+                    )}
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
-                        {log.user}
+                        {log.user_name || 'Système'}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
-                        {new Date(log.timestamp).toLocaleString('fr-FR')}
+                        {new Date(log.log_timestamp).toLocaleString('fr-FR')}
                       </div>
-                      <div className="flex items-center">
-                        <span className="w-4 h-4 mr-1">🌐</span>
-                        {log.ip}
-                      </div>
+                      {log.ip_address && (
+                        <div className="flex items-center">
+                          <span className="w-4 h-4 mr-1">🌐</span>
+                          {log.ip_address}
+                        </div>
+                      )}
                     </div>
                   </div>
                   

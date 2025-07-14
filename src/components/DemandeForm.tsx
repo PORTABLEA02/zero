@@ -60,9 +60,7 @@ export function DemandeForm() {
     pieceJointe: undefined,
     dateSurvenance: '',
     paiement: {
-      modePaiement: 'mobile_money',
-      numeroAbonnement: '77 123 45 67',
-      nomAbonne: 'Jean Dupont'
+      modePaiement: 'mobile_money'
     }
   });
 
@@ -257,23 +255,10 @@ export function DemandeForm() {
   };
 
   const handleModePaiementChange = (mode: 'mobile_money' | 'virement_bancaire' | 'cheque') => {
-    let defaultPaiement = { modePaiement: mode };
-    
-    if (mode === 'mobile_money') {
-      defaultPaiement = {
-        ...defaultPaiement,
-        numeroAbonnement: '77 123 45 67',
-        nomAbonne: 'Jean Dupont'
-      };
-    } else if (mode === 'virement_bancaire') {
-      defaultPaiement = {
-        ...defaultPaiement,
-        compteBancaire: 'SN08 SN01 0152 0000001234567890',
-        nomCompte: 'Jean Dupont'
-      };
-    }
-    
-    setFormData(prev => ({ ...prev, paiement: defaultPaiement }));
+    setFormData(prev => ({ 
+      ...prev, 
+      paiement: { modePaiement: mode }
+    }));
   };
 
   if (!showForm) {
@@ -524,9 +509,9 @@ export function DemandeForm() {
                    }}
                    maxLength={15}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="77 123 45 67"
+                    placeholder="Votre numéro de téléphone"
                   />
-                 <p className="text-xs text-gray-500 mt-1">Format: 77 123 45 67 (chiffres et espaces uniquement)</p>
+                 <p className="text-xs text-gray-500 mt-1">Format: 77 XXX XX XX (chiffres et espaces uniquement)</p>
                 </div>
                 <div>
                   <label htmlFor="nomAbonne" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
@@ -538,7 +523,7 @@ export function DemandeForm() {
                     value={formData.paiement.nomAbonne || ''}
                     onChange={(e) => handlePaiementChange('nomAbonne', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="Jean Dupont"
+                    placeholder="Votre nom complet"
                   />
                 </div>
               </div>
@@ -556,7 +541,7 @@ export function DemandeForm() {
                     value={formData.paiement.compteBancaire || ''}
                     onChange={(e) => handlePaiementChange('compteBancaire', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="SN08 SN01 0152 0000001234567890"
+                    placeholder="Votre numéro de compte bancaire"
                   />
                 </div>
                 <div>
@@ -569,7 +554,7 @@ export function DemandeForm() {
                     value={formData.paiement.nomCompte || ''}
                     onChange={(e) => handlePaiementChange('nomCompte', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="Jean Dupont"
+                    placeholder="Nom du titulaire du compte"
                   />
                 </div>
               </div>

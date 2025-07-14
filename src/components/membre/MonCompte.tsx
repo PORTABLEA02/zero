@@ -77,10 +77,19 @@ export function MonCompte() {
         
         if (profile) {
           // Diviser le nom complet en nom et prénom
-          const nameParts = profile.full_name.split(' ');
-          const prenom = nameParts[0] || '';
-          const nom = nameParts.slice(1).join(' ') || '';
-          
+              const nameParts = profile.full_name.trim().split(/\s+/);
+              
+              let nom = '';
+              let prenom = '';
+              
+              for (const part of nameParts) {
+                if (/^[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜŸÇÑ]+$/.test(part)) {
+                  nom += (nom ? ' ' : '') + part;
+                } else {
+                  prenom += (prenom ? ' ' : '') + part;
+                }
+              }
+                      
           setProfileData({
             nom,
             prenom,
