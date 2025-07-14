@@ -106,14 +106,10 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
           </div>
           <div className="ml-3 min-w-0 flex-1">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {userRole === 'membre' ? 'Jean Dupont' :
-               userRole === 'controleur' ? 'Marie Martin' :
-               'Administrateur MuSAIB'}
+              {user?.name || 'Utilisateur'}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {userRole === 'membre' ? 'membre@demo.com' :
-               userRole === 'controleur' ? 'controleur@demo.com' :
-               'admin@musaib.com'}
+              {user?.email || 'email@exemple.com'}
             </p>
           </div>
         </div>

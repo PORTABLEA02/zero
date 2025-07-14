@@ -8,6 +8,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   updatePassword: (newPassword: string) => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
 }
 
@@ -114,10 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, updatePassword, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, updatePassword, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

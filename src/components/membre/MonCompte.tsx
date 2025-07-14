@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { ProfileService } from '../../services/profileService';
+import type { Profile } from '../../lib/supabase';
 import { 
   User, 
   Mail, 
@@ -25,6 +27,7 @@ interface ProfileFormData {
   adresse: string;
   service: string;
   numeroAdhesion: string;
+  dateAdhesion?: string;
 }
 
 interface PasswordFormData {
@@ -34,9 +37,10 @@ interface PasswordFormData {
 }
 
 export function MonCompte() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -47,16 +51,61 @@ export function MonCompte() {
     text: string;
   } | null>(null);
 
-  // Données simulées pour le membre
+  // Données du profil utilisateur
   const [profileData, setProfileData] = useState<ProfileFormData>({
-    nom: 'Dupont',
-    prenom: 'Jean',
-    email: 'membre@demo.com',
-    telephone: '+221 77 123 45 67',
-    adresse: 'Dakar, Plateau, Sénégal',
-    service: 'Informatique',
-    numeroAdhesion: 'MUS-2023-001'
+    nom: '',
+    prenom: '',
+    email: '',
+    telephone: '',
+    adresse: '',
+    service: '',
+    numeroAdhesion: '',
+    dateAdhesion: ''
   });
+
+  // Charger les données du profil au montage
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setLoadingProfile(false);
+        return;
+      }
+
+      try {
+        setLoadingProfile(true);
+        const profile = await ProfileService.getProfile(user.id);
+        
+        if (profile) {
+          // Diviser le nom complet en nom et prénom
+          const nameParts = profile.full_name.split(' ');
+          const prenom = nameParts[0] || '';
+          const nom = nameParts.slice(1).join(' ') || '';
+          
+          setProfileData({
+            nom,
+            prenom,
+            email: profile.email,
+            telephone: profile.phone || '',
+            adresse: profile.address || '',
+            service: profile.service || '',
+            numeroAdhesion: profile.adhesion_number || '',
+            dateAdhesion: profile.date_adhesion || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        setMessage({
+          type: 'error',
+          text: 'Erreur lors du chargement du profil'
+        });
+        setTimeout(() => setMessage(null), 5000);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const [passwordData, setPasswordData] = useState<PasswordFormData>({
     currentPassword: '',
@@ -139,17 +188,48 @@ export function MonCompte() {
   };
 
   const handleSaveProfile = () => {
-    if (validateProfile()) {
-      // Simulation de la sauvegarde
-      setTimeout(() => {
+    const saveProfile = async () => {
+      if (!user || !validateProfile()) return;
+
+      try {
+        // Construire l'objet de mise à jour
+        const updates: Partial<Profile> = {
+          full_name: `${profileData.prenom} ${profileData.nom}`,
+          email: profileData.email,
+          phone: profileData.telephone,
+          address: profileData.adresse,
+          service: profileData.service
+        };
+
+        const success = await ProfileService.updateProfile(user.id, updates);
+        
+        if (success) {
+          // Rafraîchir les données utilisateur dans le contexte
+          await refreshUser();
+          
+          setMessage({
+            type: 'success',
+            text: 'Profil mis à jour avec succès'
+          });
+          setIsEditing(false);
+        } else {
+          setMessage({
+            type: 'error',
+            text: 'Erreur lors de la mise à jour du profil'
+          });
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
         setMessage({
-          type: 'success',
-          text: 'Profil mis à jour avec succès'
+          type: 'error',
+          text: 'Erreur lors de la mise à jour du profil'
         });
-        setIsEditing(false);
-        setTimeout(() => setMessage(null), 3000);
-      }, 500);
-    }
+      }
+      
+      setTimeout(() => setMessage(null), 5000);
+    };
+
+    saveProfile();
   };
 
   const handleChangePassword = () => {
@@ -176,6 +256,20 @@ export function MonCompte() {
       [field]: !prev[field]
     }));
   };
+
+  if (loadingProfile) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Mon compte</h1>
+          <p className="text-sm sm:text-base text-gray-600">Chargement...</p>
+        </div>
+        <div className="animate-pulse">
+          <div className="bg-gray-200 rounded-lg h-96"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -248,11 +342,13 @@ export function MonCompte() {
                     <p className="text-sm text-gray-500">{profileData.service}</p>
                     <div className="flex items-center text-xs text-gray-400 mt-1">
                       <CreditCard className="w-3 h-3 mr-1" />
-                      Adhérent n° {profileData.numeroAdhesion}
+                      <span className="text-blue-700 ml-2">
+                        Adhérent n° {profileData.numeroAdhesion || 'Non attribué'}
+                      </span>
                     </div>
                     <div className="flex items-center text-xs text-gray-400 mt-1">
                       <Calendar className="w-3 h-3 mr-1" />
-                      Membre depuis janvier 2023
+                      Membre depuis {profileData.dateAdhesion ? new Date(profileData.dateAdhesion).toLocaleDateString('fr-FR') : 'date inconnue'}
                     </div>
                   </div>
                 </div>
