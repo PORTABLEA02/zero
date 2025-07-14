@@ -116,7 +116,7 @@ export function DemandeProvider({ children }: { children: ReactNode }) {
         // Log de mise à jour de statut
         await AuditService.createLog(
           'Mise à jour statut demande',
-          `Demande ${id} ${statut} par ${userNom}`,
+          `Demande ${id} ${statut === 'validee' ? 'validée' : statut === 'rejetee' ? 'rejetée' : 'acceptée'} par ${userNom}`,
           statut === 'rejetee' ? 'warning' : 'success',
           'Demandes'
         );

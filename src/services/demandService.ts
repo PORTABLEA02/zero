@@ -143,6 +143,11 @@ export class DemandService {
         updates.administrator_id = userId;
         updates.administrator_name = userName;
         updates.validation_date = new Date().toISOString().split('T')[0];
+      } else if (status === 'rejetee' && updates.administrator_id) {
+        // Si c'est un rejet par l'administrateur, on garde les infos admin
+        updates.administrator_id = userId;
+        updates.administrator_name = userName;
+        updates.validation_date = new Date().toISOString().split('T')[0];
       }
 
       const { error } = await supabase

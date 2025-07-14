@@ -14,11 +14,12 @@ import {
   Filter,
   Eye,
   Download,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from 'lucide-react';
 
 export function GestionDemandes() {
-  const { demandes, updateDemandeStatut } = useDemandes();
+  const { demandes, updateDemandeStatut, loading: demandesLoading } = useDemandes();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function GestionDemandes() {
   const [recherche, setRecherche] = useState('');
   const [commentaire, setCommentaire] = useState('');
   const [actionType, setActionType] = useState<'validate' | 'reject' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Fonctions utilitaires
   const getTypeLabel = (type: string = '') => {
@@ -43,9 +45,9 @@ export function GestionDemandes() {
   const getStatutLabel = (statut: string = '') => {
     const labels = {
       'en_attente': 'En attente',
-      'acceptee': 'Acceptée',
+      'acceptee': 'Acceptée par le contrôleur',
       'rejetee': 'Rejetée',
-      'validee': 'Validée'
+      'validee': 'Validée par l\'administrateur'
     };
     return labels[statut as keyof typeof labels] || statut;
   };
@@ -76,7 +78,6 @@ export function GestionDemandes() {
     const typeParam = searchParams.get('type');
     
     if (statutParam) {
-      // Si le paramètre est 'tous' ou vide, utiliser 'acceptee' par défaut pour l'admin
       setFiltreStatut(statutParam === 'tous' ? 'acceptee' : statutParam);
     }
     
@@ -87,11 +88,11 @@ export function GestionDemandes() {
 
   // Filtrage sécurisé des demandes
   const demandesFiltrees = demandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.statut === filtreStatut;
-    const matchType = filtreType === 'tous' || demande.type === filtreType;
+    const matchStatut = filtreStatut === 'tous' || demande.status === filtreStatut;
+    const matchType = filtreType === 'tous' || demande.service_type === filtreType;
     
     // Protection contre les valeurs undefined/null
-    const typeLabel = getTypeLabel(demande.type)?.toLowerCase() || '';
+    const typeLabel = getTypeLabel(demande.service_type)?.toLowerCase() || '';
     const memberName = demande.member_name?.toLowerCase() || '';
     const beneficiaryName = demande.beneficiary_name?.toLowerCase() || '';
     const searchTerm = recherche.toLowerCase();
@@ -104,31 +105,49 @@ export function GestionDemandes() {
     return matchStatut && matchType && matchRecherche;
   });
 
-  const handleValider = (demandeId: string) => {
-    if (user) {
-      updateDemandeStatut(demandeId, 'validee', user.id, user.name, commentaire);
-      setSelectedDemande(null);
-      setActionType(null);
-      setCommentaire('');
+  const handleValider = async (demandeId: string) => {
+    if (!user) return;
+    
+    setIsProcessing(true);
+    try {
+      const success = await updateDemandeStatut(demandeId, 'validee', user.id, user.name, commentaire);
+      if (success) {
+        setSelectedDemande(null);
+        setActionType(null);
+        setCommentaire('');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la validation:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleRejeter = (demandeId: string) => {
-    if (user && commentaire.trim()) {
-      updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
-      setSelectedDemande(null);
-      setActionType(null);
-      setCommentaire('');
+  const handleRejeter = async (demandeId: string) => {
+    if (!user || !commentaire.trim()) return;
+    
+    setIsProcessing(true);
+    try {
+      const success = await updateDemandeStatut(demandeId, 'rejetee', user.id, user.name, commentaire);
+      if (success) {
+        setSelectedDemande(null);
+        setActionType(null);
+        setCommentaire('');
+      }
+    } catch (error) {
+      console.error('Erreur lors du rejet:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   // Statistiques
   const stats = {
     total: demandes.length,
-    enAttente: demandes.filter(d => d.statut === 'en_attente').length,
-    acceptees: demandes.filter(d => d.statut === 'acceptee').length, // En attente de validation admin
-    validees: demandes.filter(d => d.statut === 'validee').length,
-    rejetees: demandes.filter(d => d.statut === 'rejetee').length
+    enAttente: demandes.filter(d => d.status === 'en_attente').length,
+    acceptees: demandes.filter(d => d.status === 'acceptee').length, // En attente de validation admin
+    validees: demandes.filter(d => d.status === 'validee').length,
+    rejetees: demandes.filter(d => d.status === 'rejetee').length
   };
 
   const demandeSelectionnee = selectedDemande ? demandes.find(d => d.id === selectedDemande) : null;
@@ -143,46 +162,176 @@ export function GestionDemandes() {
     }
   };
 
+  if (demandesLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg h-32"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestion des demandes</h1>
-          <p className="text-gray-600">Vue d'ensemble de toutes les demandes ({stats.total} demandes)</p>
+          <p className="text-gray-600">Validation finale des demandes acceptées par les contrôleurs ({stats.total} demandes)</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-          <Download className="w-4 h-4 mr-2" />
-          Exporter
-        </button>
+        <div className="flex items-center space-x-2">
+          <Shield className="w-5 h-5 text-purple-600" />
+          <span className="text-sm font-medium text-purple-800">Administrateur</span>
+        </div>
       </div>
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        {/* ... (le reste du code reste inchangé) ... */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            </div>
+            <FileText className="w-8 h-8 text-gray-400" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">En attente contrôle</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.enAttente}</p>
+            </div>
+            <Clock className="w-8 h-8 text-yellow-400" />
+          </div>
+        </div>
+
+        <button
+          onClick={() => setFiltreStatut('acceptee')}
+          className={`bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all text-left ${
+            filtreStatut === 'acceptee' ? 'ring-2 ring-blue-500 border-blue-300' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">À valider</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.acceptees}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-blue-400" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => setFiltreStatut('validee')}
+          className={`bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all text-left ${
+            filtreStatut === 'validee' ? 'ring-2 ring-green-500 border-green-300' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Validées</p>
+              <p className="text-2xl font-bold text-green-600">{stats.validees}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-400" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => setFiltreStatut('rejetee')}
+          className={`bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all text-left ${
+            filtreStatut === 'rejetee' ? 'ring-2 ring-red-500 border-red-300' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Rejetées</p>
+              <p className="text-2xl font-bold text-red-600">{stats.rejetees}</p>
+            </div>
+            <XCircle className="w-8 h-8 text-red-400" />
+          </div>
+        </button>
       </div>
 
       {/* Filtres et recherche */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label htmlFor="filtreStatut" className="block text-sm font-medium text-gray-700 mb-1">
-              Statut
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                placeholder="Rechercher..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
             <select
               value={filtreStatut}
               onChange={(e) => setFiltreStatut(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="tous">Tous les statuts</option>
-              <option value="acceptee">Acceptée (en attente)</option>
-              <option value="validee">Validée</option>
-              <option value="rejetee">Rejetée</option>
+              <option value="acceptee">À valider (Acceptées)</option>
+              <option value="validee">Validées</option>
+              <option value="rejetee">Rejetées</option>
             </select>
           </div>
 
           <div>
-            {/* ... (le reste du code reste inchangé) ... */}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type de service</label>
+            <select
+              value={filtreType}
+              onChange={(e) => setFiltreType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="tous">Tous les types</option>
+              <option value="mariage">Allocation Mariage</option>
+              <option value="naissance">Allocation Naissance</option>
+              <option value="deces">Allocation Décès</option>
+              <option value="pret_social">Prêt Social</option>
+              <option value="pret_economique">Prêt Économique</option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setFiltreStatut('acceptee');
+                setFiltreType('tous');
+                setRecherche('');
+              }}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="w-4 h-4 inline mr-2" />
+              Réinitialiser
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Information sur le rôle administrateur */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start">
+          <Shield className="w-5 h-5 text-purple-600 mr-2 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-purple-900 mb-1">Rôle Administrateur</h3>
+            <p className="text-sm text-purple-800">
+              En tant qu'administrateur, vous validez définitivement les demandes acceptées par les contrôleurs. 
+              Une fois validées, les demandes peuvent être traitées pour paiement.
+            </p>
           </div>
         </div>
       </div>
@@ -193,13 +342,22 @@ export function GestionDemandes() {
           <h3 className="text-lg font-semibold text-gray-900">
             Demandes ({demandesFiltrees.length})
           </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {filtreStatut === 'acceptee' ? 'Demandes en attente de votre validation' : 
+             filtreStatut === 'validee' ? 'Demandes que vous avez validées' :
+             filtreStatut === 'rejetee' ? 'Demandes rejetées' :
+             'Toutes les demandes'}
+          </p>
         </div>
         
         {demandesFiltrees.length === 0 ? (
           <div className="p-8 text-center">
             <FileText className="w-16 h-16 mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune demande trouvée</h3>
-            <p className="text-gray-500">Aucune demande ne correspond à vos critères de recherche</p>
+            <p className="text-gray-500">
+              {filtreStatut === 'acceptee' ? 'Aucune demande en attente de validation' :
+               'Aucune demande ne correspond à vos critères de recherche'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -209,15 +367,15 @@ export function GestionDemandes() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <h3 className="text-lg font-medium text-gray-900">
-                        {getTypeLabel(demande.type)} - {demande.beneficiary_name || 'Bénéficiaire inconnu'}
+                        {getTypeLabel(demande.service_type)} - {demande.beneficiary_name || 'Bénéficiaire inconnu'}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.statut)}`}>
-                        {getStatutIcon(demande.statut)}
-                        <span className="ml-1">{getStatutLabel(demande.statut)}</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demande.status)}`}>
+                        {getStatutIcon(demande.status)}
+                        <span className="ml-1">{getStatutLabel(demande.status)}</span>
                       </span>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-2">{getTypeLabel(demande.type)}</p>
+                    <p className="text-sm text-gray-600 mb-2">{getTypeLabel(demande.service_type)}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                       <div className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
@@ -225,7 +383,7 @@ export function GestionDemandes() {
                       </div>
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(demande.submission_date)}
+                        Soumise le {formatDate(demande.submission_date)}
                       </div>
                       {demande.amount && (
                         <div className="flex items-center">
@@ -237,6 +395,25 @@ export function GestionDemandes() {
                     <p className="text-sm text-gray-500">
                       Bénéficiaire: {demande.beneficiary_name || 'Inconnu'} ({demande.beneficiary_relation || 'Relation inconnue'})
                     </p>
+                    
+                    {/* Informations de traitement */}
+                    {demande.controller_name && (
+                      <div className="mt-2 text-sm text-gray-500">
+                        <span className="font-medium">Contrôleur:</span> {demande.controller_name}
+                        {demande.processing_date && (
+                          <span> • Traité le {formatDate(demande.processing_date)}</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {demande.administrator_name && (
+                      <div className="mt-1 text-sm text-gray-500">
+                        <span className="font-medium">Administrateur:</span> {demande.administrator_name}
+                        {demande.validation_date && (
+                          <span> • Validé le {formatDate(demande.validation_date)}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="ml-4 flex space-x-2">
@@ -249,10 +426,10 @@ export function GestionDemandes() {
                       className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                     >
                       <Eye className="w-4 h-4 mr-2" />
-                      Détails
+                      Examiner
                     </button>
                     
-                    {demande.statut === 'acceptee' && (
+                    {demande.status === 'acceptee' && (
                       <div className="flex space-x-2">
                         <button
                           onClick={() => {
@@ -289,7 +466,7 @@ export function GestionDemandes() {
       {/* Modal de détails/validation */}
       {demandeSelectionnee && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-medium text-gray-900">
                 {actionType === 'validate' ? 'Valider la demande' :
@@ -308,60 +485,105 @@ export function GestionDemandes() {
               </button>
             </div>
 
-            <div className="space-y-4 mb-6">
-              <div>
-                <h4 className="font-medium text-gray-900">
-                  {getTypeLabel(demandeSelectionnee.type)} - {demandeSelectionnee.beneficiary_name || 'Bénéficiaire inconnu'}
-                </h4>
-                <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.type)}</p>
+            <div className="space-y-6 mb-6">
+              {/* Informations principales */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">Informations de la demande</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700">Type de service</h5>
+                      <p className="text-sm text-gray-600">{getTypeLabel(demandeSelectionnee.service_type)}</p>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700">Bénéficiaire</h5>
+                      <p className="text-sm text-gray-600">
+                        {demandeSelectionnee.beneficiary_name || 'Inconnu'} ({demandeSelectionnee.beneficiary_relation || 'Relation inconnue'})
+                      </p>
+                    </div>
+
+                    {demandeSelectionnee.amount && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700">Montant</h5>
+                        <p className="text-sm text-gray-600 font-medium">{demandeSelectionnee.amount.toLocaleString()} FCFA</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700">Statut actuel</h5>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatutColor(demandeSelectionnee.status)}`}>
+                        {getStatutIcon(demandeSelectionnee.status)}
+                        <span className="ml-1">{getStatutLabel(demandeSelectionnee.status)}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">Informations de traitement</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700">Membre demandeur</h5>
+                      <p className="text-sm text-gray-600">{demandeSelectionnee.member_name || 'Membre inconnu'}</p>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700">Date de soumission</h5>
+                      <p className="text-sm text-gray-600">{formatDate(demandeSelectionnee.submission_date)}</p>
+                    </div>
+
+                    {demandeSelectionnee.controller_name && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700">Contrôleur</h5>
+                        <p className="text-sm text-gray-600">
+                          {demandeSelectionnee.controller_name}
+                          {demandeSelectionnee.processing_date && (
+                            <span className="text-gray-500"> • {formatDate(demandeSelectionnee.processing_date)}</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                    {demandeSelectionnee.administrator_name && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700">Administrateur</h5>
+                        <p className="text-sm text-gray-600">
+                          {demandeSelectionnee.administrator_name}
+                          {demandeSelectionnee.validation_date && (
+                            <span className="text-gray-500"> • {formatDate(demandeSelectionnee.validation_date)}</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h5 className="text-sm font-medium text-gray-700 mb-1">Bénéficiaire</h5>
-                <p className="text-sm text-gray-600">
-                  {demandeSelectionnee.beneficiary_name || 'Inconnu'} ({demandeSelectionnee.beneficiary_relation || 'Relation inconnue'})
-                </p>
-              </div>
-
-              {demandeSelectionnee.amount && (
+              {/* Pièce justificative */}
+              {demandeSelectionnee.justification_document && (
                 <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Montant</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.amount.toLocaleString()} FCFA</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Membre</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.member_name || 'Membre inconnu'}</p>
-                </div>
-                <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Date de soumission</h5>
-                  <p className="text-sm text-gray-600">{formatDate(demandeSelectionnee.submission_date)}</p>
-                </div>
-              </div>
-
-              {demandeSelectionnee.pieceJointe && (
-                <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Pièce justificative</h5>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Pièce justificative</h5>
                   <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.pieceJointe.nom || 'Document sans nom'}</p>
+                        <p className="text-sm font-medium text-gray-900">{demandeSelectionnee.justification_document.nom || 'Document sans nom'}</p>
                         <p className="text-xs text-gray-500">
-                          {(demandeSelectionnee.pieceJointe.taille / 1024 / 1024).toFixed(2)} MB • 
-                          Uploadé le {formatDate(demandeSelectionnee.pieceJointe.dateUpload)}
+                          {demandeSelectionnee.justification_document.taille ? 
+                            (demandeSelectionnee.justification_document.taille / 1024 / 1024).toFixed(2) + ' MB' : 
+                            'Taille inconnue'} • 
+                          Uploadé le {formatDate(demandeSelectionnee.justification_document.dateUpload)}
                         </p>
                       </div>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
-                          if (demandeSelectionnee.pieceJointe?.url) {
-                            window.open(demandeSelectionnee.pieceJointe.url, '_blank');
+                          if (demandeSelectionnee.justification_document?.url) {
+                            window.open(demandeSelectionnee.justification_document.url, '_blank');
                           }
                         }}
                         className="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
@@ -371,10 +593,10 @@ export function GestionDemandes() {
                       </button>
                       <button
                         onClick={() => {
-                          if (demandeSelectionnee.pieceJointe?.url) {
+                          if (demandeSelectionnee.justification_document?.url) {
                             const link = document.createElement('a');
-                            link.href = demandeSelectionnee.pieceJointe.url;
-                            link.download = demandeSelectionnee.pieceJointe.nom || 'document';
+                            link.href = demandeSelectionnee.justification_document.url;
+                            link.download = demandeSelectionnee.justification_document.nom || 'document';
                             link.click();
                           }
                         }}
@@ -387,20 +609,24 @@ export function GestionDemandes() {
                   </div>
                 </div>
               )}
-              
-              {demandeSelectionnee.controleurNom && (
+
+              {/* Commentaire précédent */}
+              {demandeSelectionnee.comment && (
                 <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-1">Traité par</h5>
-                  <p className="text-sm text-gray-600">{demandeSelectionnee.controleurNom}</p>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Commentaire du contrôleur</h5>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">{demandeSelectionnee.comment}</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {demandeSelectionnee.statut === 'acceptee' && actionType && (
+            {/* Actions de validation/rejet */}
+            {demandeSelectionnee.status === 'acceptee' && actionType && (
               <>
                 <div className="mb-6">
                   <label htmlFor="commentaire" className="block text-sm font-medium text-gray-700 mb-2">
-                    Commentaire {actionType === 'reject' ? '(requis pour le rejet)' : '(optionnel)'}
+                    Commentaire administrateur {actionType === 'reject' ? '(requis pour le rejet)' : '(optionnel)'}
                   </label>
                   <textarea
                     id="commentaire"
@@ -408,7 +634,7 @@ export function GestionDemandes() {
                     onChange={(e) => setCommentaire(e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={actionType === 'reject' ? 'Motif du rejet (obligatoire)...' : 'Ajoutez un commentaire...'}
+                    placeholder={actionType === 'reject' ? 'Motif du rejet (obligatoire)...' : 'Ajoutez un commentaire sur votre décision...'}
                   />
                 </div>
 
@@ -416,15 +642,17 @@ export function GestionDemandes() {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
                     <div>
-                      <h3 className="text-sm font-medium text-yellow-800 mb-1">Attention</h3>
+                      <h3 className="text-sm font-medium text-yellow-800 mb-1">Attention - Décision finale</h3>
                       <p className="text-sm text-yellow-700">
                         {actionType === 'validate' ? (
                           <>
-                            <strong>Valider</strong> : La demande sera définitivement approuvée et le processus de paiement pourra être initié.
+                            <strong>Valider</strong> : La demande sera définitivement approuvée et pourra être traitée pour paiement. 
+                            Cette action est irréversible.
                           </>
                         ) : (
                           <>
-                            <strong>Rejeter</strong> : La demande sera définitivement rejetée et ne pourra plus être traitée. Un commentaire est obligatoire.
+                            <strong>Rejeter</strong> : La demande sera définitivement rejetée et ne pourra plus être traitée. 
+                            Un commentaire explicatif est obligatoire. Cette action est irréversible.
                           </>
                         )}
                       </p>
@@ -436,21 +664,40 @@ export function GestionDemandes() {
                   {actionType === 'validate' && (
                     <button
                       onClick={() => handleValider(demandeSelectionnee.id)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                      disabled={isProcessing}
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Valider définitivement
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Validation...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Valider définitivement
+                        </>
+                      )}
                     </button>
                   )}
                   
                   {actionType === 'reject' && (
                     <button
                       onClick={() => handleRejeter(demandeSelectionnee.id)}
-                      disabled={!commentaire.trim()}
+                      disabled={!commentaire.trim() || isProcessing}
                       className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Rejeter définitivement
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Rejet...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Rejeter définitivement
+                        </>
+                      )}
                     </button>
                   )}
                   
@@ -460,7 +707,8 @@ export function GestionDemandes() {
                       setActionType(null);
                       setCommentaire('');
                     }}
-                    className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    disabled={isProcessing}
+                    className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
                   >
                     Annuler
                   </button>
@@ -468,7 +716,8 @@ export function GestionDemandes() {
               </>
             )}
 
-            {(demandeSelectionnee.statut !== 'acceptee' || !actionType) && (
+            {/* Bouton fermer pour les demandes non-modifiables */}
+            {(demandeSelectionnee.status !== 'acceptee' || !actionType) && (
               <div className="flex justify-end">
                 <button
                   onClick={() => {
