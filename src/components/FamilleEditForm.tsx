@@ -1,27 +1,28 @@
 import React, { useState } from 'react';
-import { MembreFamille, MembreFamilleFormData } from '../types';
+import type { FamilyMember } from '../lib/supabase';
+import type { FamilyMemberFormData } from '../services/familyService';
 import { X, User, Calendar, Users, Upload, Save, AlertCircle } from 'lucide-react';
 
 interface FamilleEditFormProps {
-  membre: MembreFamille;
-  onSave: (id: string, data: Partial<MembreFamilleFormData>) => boolean;
+  membre: FamilyMember;
+  onSave: (id: string, data: Partial<FamilyMemberFormData>) => Promise<boolean>;
   onCancel: () => void;
-  canAddRelation: (relation: MembreFamille['relation'], currentId?: string) => boolean;
+  canAddRelation: (relation: FamilyMember['relation'], currentId?: string) => boolean;
 }
 
 export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: FamilleEditFormProps) {
-  const [formData, setFormData] = useState<MembreFamilleFormData>({
-    nom: membre.nom,
-    prenom: membre.prenom,
+  const [formData, setFormData] = useState<FamilyMemberFormData>({
+    first_name: membre.first_name,
+    last_name: membre.last_name,
     npi: membre.npi,
-    acteNaissance: membre.acteNaissance,
-    dateNaissance: membre.dateNaissance,
+    birth_certificate_ref: membre.birth_certificate_ref,
+    date_of_birth: membre.date_of_birth,
     relation: membre.relation,
-    pieceJustificative: undefined
+    justification_document: undefined
   });
 
-  const [errors, setErrors] = useState<Partial<MembreFamilleFormData>>({});
-  const [removePieceJustificative, setRemovePieceJustificative] = useState(false);
+  const [errors, setErrors] = useState<Partial<FamilyMemberFormData>>({});
+  const [removeJustificationDocument, setRemoveJustificationDocument] = useState(false);
 
   const relationOptions = [
     { value: 'epoux', label: 'Époux' },
@@ -37,9 +38,9 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
     e.preventDefault();
     
     // Validation
-    const newErrors: Partial<MembreFamilleFormData> = {};
-    if (!formData.nom.trim()) newErrors.nom = 'Le nom est requis';
-    if (!formData.prenom.trim()) newErrors.prenom = 'Le prénom est requis';
+    const newErrors: Partial<FamilyMemberFormData> = {};
+    if (!formData.last_name.trim()) newErrors.last_name = 'Le nom est requis';
+    if (!formData.first_name.trim()) newErrors.first_name = 'Le prénom est requis';
     if (!formData.npi.trim()) {
       newErrors.npi = 'Le numéro NPI est requis';
     } else if (formData.npi.length < 10) {
@@ -47,8 +48,8 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
     } else if (!/^\d+$/.test(formData.npi)) {
       newErrors.npi = 'Le numéro NPI ne doit contenir que des chiffres';
     }
-    if (!formData.acteNaissance.trim()) newErrors.acteNaissance = 'L\'acte de naissance est requis';
-    if (!formData.dateNaissance) newErrors.dateNaissance = 'La date de naissance est requise';
+    if (!formData.birth_certificate_ref.trim()) newErrors.birth_certificate_ref = 'L\'acte de naissance est requis';
+    if (!formData.date_of_birth) newErrors.date_of_birth = 'La date de naissance est requise';
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -56,21 +57,21 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
     }
 
     // Préparer les données à sauvegarder
-    const dataToSave: Partial<MembreFamilleFormData> = {
-      nom: formData.nom,
-      prenom: formData.prenom,
+    const dataToSave: Partial<FamilyMemberFormData> = {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
       npi: formData.npi,
-      acteNaissance: formData.acteNaissance,
-      dateNaissance: formData.dateNaissance,
+      birth_certificate_ref: formData.birth_certificate_ref,
+      date_of_birth: formData.date_of_birth,
       relation: formData.relation
     };
 
     // Gérer la pièce justificative
-    if (formData.pieceJustificative) {
-      dataToSave.pieceJustificative = formData.pieceJustificative;
-    } else if (removePieceJustificative) {
+    if (formData.justification_document) {
+      dataToSave.justification_document = formData.justification_document;
+    } else if (removeJustificationDocument) {
       // Marquer pour suppression
-      dataToSave.pieceJustificative = null as any;
+      dataToSave.justification_document = null as any;
     }
 
     const success = onSave(membre.id, dataToSave);
@@ -81,7 +82,7 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
     }
   };
 
-  const handleChange = (field: keyof MembreFamilleFormData, value: string) => {
+  const handleChange = (field: keyof FamilyMemberFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -120,10 +121,10 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h4 className="text-sm font-medium text-blue-900 mb-2">Informations actuelles</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-800">
-            <div><span className="font-medium">Nom :</span> {membre.nom}</div>
-            <div><span className="font-medium">Prénom :</span> {membre.prenom}</div>
-            <div><span className="font-medium">Âge :</span> {calculateAge(membre.dateNaissance)} ans</div>
-            <div><span className="font-medium">Ajouté le :</span> {new Date(membre.dateAjout).toLocaleDateString('fr-FR')}</div>
+            <div><span className="font-medium">Nom :</span> {membre.last_name}</div>
+            <div><span className="font-medium">Prénom :</span> {membre.first_name}</div>
+            <div><span className="font-medium">Âge :</span> {calculateAge(membre.date_of_birth)} ans</div>
+            <div><span className="font-medium">Ajouté le :</span> {new Date(membre.date_added).toLocaleDateString('fr-FR')}</div>
           </div>
         </div>
 
@@ -140,7 +141,7 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 {relationOptions.map(option => {
-                  const isAvailable = option.value === membre.relation || canAddRelation(option.value as MembreFamille['relation'], membre.id);
+                  const isAvailable = option.value === membre.relation || canAddRelation(option.value as FamilyMember['relation'], membre.id);
                   return (
                     <option 
                       key={option.value} 
@@ -162,14 +163,14 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
               <input
                 type="text"
                 id="nom"
-                value={formData.nom}
-                onChange={(e) => handleChange('nom', e.target.value)}
+                value={formData.last_name}
+                onChange={(e) => handleChange('last_name', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.nom ? 'border-red-500' : 'border-gray-300'
+                  errors.last_name ? 'border-red-500' : 'border-gray-300'
                 } text-sm`}
                 placeholder="Nom de famille"
               />
-              {errors.nom && <p className="text-red-500 text-xs mt-1">{errors.nom}</p>}
+              {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name}</p>}
             </div>
 
             <div>
@@ -179,14 +180,14 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
               <input
                 type="text"
                 id="prenom"
-                value={formData.prenom}
-                onChange={(e) => handleChange('prenom', e.target.value)}
+                value={formData.first_name}
+                onChange={(e) => handleChange('first_name', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.prenom ? 'border-red-500' : 'border-gray-300'
+                  errors.first_name ? 'border-red-500' : 'border-gray-300'
                 } text-sm`}
                 placeholder="Prénom"
               />
-              {errors.prenom && <p className="text-red-500 text-xs mt-1">{errors.prenom}</p>}
+              {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>}
             </div>
 
             <div>
@@ -223,13 +224,13 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
               <input
                 type="date"
                 id="dateNaissance"
-                value={formData.dateNaissance}
-                onChange={(e) => handleChange('dateNaissance', e.target.value)}
+                value={formData.date_of_birth}
+                onChange={(e) => handleChange('date_of_birth', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.dateNaissance ? 'border-red-500' : 'border-gray-300'
+                  errors.date_of_birth ? 'border-red-500' : 'border-gray-300'
                 } text-sm`}
               />
-              {errors.dateNaissance && <p className="text-red-500 text-xs mt-1">{errors.dateNaissance}</p>}
+              {errors.date_of_birth && <p className="text-red-500 text-xs mt-1">{errors.date_of_birth}</p>}
             </div>
 
             <div>
@@ -239,19 +240,19 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
               <input
                 type="text"
                 id="acteNaissance"
-                value={formData.acteNaissance}
-                onChange={(e) => handleChange('acteNaissance', e.target.value)}
+                value={formData.birth_certificate_ref}
+                onChange={(e) => handleChange('birth_certificate_ref', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.acteNaissance ? 'border-red-500' : 'border-gray-300'
+                  errors.birth_certificate_ref ? 'border-red-500' : 'border-gray-300'
                 } text-sm`}
                 placeholder="Référence de l'acte de naissance"
               />
-              {errors.acteNaissance && <p className="text-red-500 text-xs mt-1">{errors.acteNaissance}</p>}
+              {errors.birth_certificate_ref && <p className="text-red-500 text-xs mt-1">{errors.birth_certificate_ref}</p>}
             </div>
           </div>
 
           {/* Pièce justificative actuelle */}
-          {membre.pieceJustificative && !removePieceJustificative && (
+          {membre.justification_document && !removeJustificationDocument && (
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Pièce justificative actuelle
@@ -264,17 +265,17 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                     </svg>
                     <div>
                       <span className="text-sm font-medium text-gray-900">
-                        {membre.pieceJustificative.nom}
+                        {membre.justification_document.nom}
                       </span>
                       <div className="text-xs text-gray-500">
-                        {(membre.pieceJustificative.taille / 1024 / 1024).toFixed(2)} MB • 
-                        Uploadé le {new Date(membre.pieceJustificative.dateUpload).toLocaleDateString('fr-FR')}
+                        {(membre.justification_document.taille / 1024 / 1024).toFixed(2)} MB • 
+                        Uploadé le {new Date(membre.justification_document.dateUpload).toLocaleDateString('fr-FR')}
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setRemovePieceJustificative(true)}
+                    onClick={() => setRemoveJustificationDocument(true)}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
                     Supprimer
@@ -285,34 +286,34 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
           )}
 
           {/* Nouvelle pièce justificative */}
-          {(removePieceJustificative || !membre.pieceJustificative) && (
+          {(removeJustificationDocument || !membre.justification_document) && (
             <div>
-              <label htmlFor="pieceJustificative" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                {removePieceJustificative ? 'Nouvelle pièce justificative' : 'Pièce justificative'}
-                {!membre.pieceJustificative && <span className="text-red-500"> *</span>}
+              <label htmlFor="justificationDocument" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                {removeJustificationDocument ? 'Nouvelle pièce justificative' : 'Pièce justificative'}
+                {!membre.justification_document && <span className="text-red-500"> *</span>}
               </label>
               
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
                 <input
                   type="file"
-                  id="pieceJustificative"
+                  id="justificationDocument"
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       setFormData(prev => ({
                         ...prev,
-                        pieceJustificative: file
+                        justification_document: file
                       }));
-                      if (errors.pieceJustificative) {
-                        setErrors(prev => ({ ...prev, pieceJustificative: undefined }));
+                      if (errors.justification_document) {
+                        setErrors(prev => ({ ...prev, justification_document: undefined }));
                       }
                     }
                   }}
                   className="hidden"
                 />
                 <label
-                  htmlFor="pieceJustificative"
+                  htmlFor="justificationDocument"
                   className="cursor-pointer flex flex-col items-center"
                 >
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
@@ -325,7 +326,7 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                 </label>
               </div>
               
-              {formData.pieceJustificative && (
+              {formData.justification_document && (
                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -334,10 +335,10 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                       </svg>
                       <div>
                         <span className="text-sm text-blue-800 font-medium">
-                          {formData.pieceJustificative.name}
+                          {formData.justification_document.name}
                         </span>
                         <div className="text-xs text-blue-600">
-                          {(formData.pieceJustificative.size / 1024 / 1024).toFixed(2)} MB
+                          {(formData.justification_document.size / 1024 / 1024).toFixed(2)} MB
                         </div>
                       </div>
                     </div>
@@ -346,9 +347,9 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                       onClick={() => {
                         setFormData(prev => ({
                           ...prev,
-                          pieceJustificative: undefined
+                          justification_document: undefined
                         }));
-                        const fileInput = document.getElementById('pieceJustificative') as HTMLInputElement;
+                        const fileInput = document.getElementById('justificationDocument') as HTMLInputElement;
                         if (fileInput) fileInput.value = '';
                       }}
                       className="text-blue-600 hover:text-blue-800 text-sm"
@@ -359,10 +360,10 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
                 </div>
               )}
 
-              {removePieceJustificative && (
+              {removeJustificationDocument && (
                 <button
                   type="button"
-                  onClick={() => setRemovePieceJustificative(false)}
+                  onClick={() => setRemoveJustificationDocument(false)}
                   className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                 >
                   Conserver la pièce justificative actuelle
