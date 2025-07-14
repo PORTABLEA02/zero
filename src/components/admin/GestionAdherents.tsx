@@ -5,6 +5,8 @@ import { FamilyService } from '../../services/familyService';
 import { AuthService } from '../../services/authService';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
+import { supabase } from '../../lib/supabase';
+import { MembreFamille, MembreFamilleFormData } from '../../types';
 import { 
   Users, 
   Plus, 
@@ -53,7 +55,7 @@ export function GestionAdherents() {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
   const [showEditForm, setShowEditForm] = useState(false);
-  const [membreToEdit, setMembreToEdit] = useState<FamilyMember | null>(null);
+  const [membreToEdit, setMembreToEdit] = useState<MembreFamille | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
     action: 'activer' | 'suspendre' | 'reinitialiser' | 'supprimer_membre' | null;
@@ -62,25 +64,46 @@ export function GestionAdherents() {
   }>({ show: false, action: null, adherent: null, membre: null });
 
   // Charger les données depuis Supabase
-  React.useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [profilesData, familyData] = await Promise.all([
-          ProfileService.getAllProfiles(),
-          FamilyService.getAllFamilyMembers()
-        ]);
-        setAdherents(profilesData);
-        setMembresFamille(familyData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+React.useEffect(() => {
+  const loadData = async () => {
+    try {
+      setLoading(true);
 
-    loadData();
-  }, []);
+      // ✅ Étape 1 : Récupérer l'utilisateur connecté
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error('Erreur de récupération de l’utilisateur connecté :', userError.message);
+        return;
+      }
+
+      const user = userData.user;
+      console.log('✅ Utilisateur connecté :', user);
+      console.log('🪪 ID utilisateur :', user?.id);
+      console.log('📧 Email utilisateur :', user?.email);
+      console.log('🎭 Role utilisateur (métadonnée) :', user?.user_metadata?.role);
+
+      // ✅ Étape 2 : Charger les données liées aux profils et membres de famille
+      const [profilesData, familyData] = await Promise.all([
+        ProfileService.getAllProfiles(),
+        FamilyService.getAllFamilyMembers()
+      ]);
+
+      console.log('👤 Adhérents récupérés depuis Supabase :', profilesData);
+      console.log('👨‍👩‍👧‍👦 Membres de famille récupérés :', familyData);
+
+      setAdherents(profilesData);
+      setMembresFamille(familyData);
+
+    } catch (error) {
+      console.error('Erreur lors du chargement des données :', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadData();
+}, []);
 
   // Initialiser les filtres selon les paramètres URL
   React.useEffect(() => {
@@ -99,8 +122,15 @@ export function GestionAdherents() {
       adherent.full_name.toLowerCase().includes(recherche.toLowerCase()) ||
       adherent.email.toLowerCase().includes(recherche.toLowerCase());
     
-    // Pour l'instant, tous les profils sont considérés comme actifs
-    const matchStatut = filtreStatut === 'tous' || filtreStatut === 'actif';
+    // Filtrer selon le statut réel de l'utilisateur
+    let matchStatut = true;
+    if (filtreStatut === 'actif') {
+      matchStatut = adherent.is_active !== false; // Considérer null comme actif pour compatibilité
+    } else if (filtreStatut === 'inactif' || filtreStatut === 'suspendu') {
+      matchStatut = adherent.is_active === false;
+    } else if (filtreStatut !== 'tous') {
+      matchStatut = false;
+    }
     
     return matchRecherche && matchStatut;
   });
@@ -262,14 +292,52 @@ export function GestionAdherents() {
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
+  // Fonction de mappage FamilyMember (Supabase) vers MembreFamille (Formulaire)
+  const mapFamilyMemberToMembreFamille = (member: FamilyMember): MembreFamille => {
+    return {
+      id: member.id,
+      nom: member.last_name,
+      prenom: member.first_name,
+      npi: member.npi,
+      acteNaissance: member.birth_certificate_ref,
+      dateNaissance: member.date_of_birth,
+      relation: member.relation,
+      dateAjout: member.date_added,
+      pieceJustificative: member.justification_document ? {
+        nom: member.justification_document.nom || 'Document',
+        url: member.justification_document.url || '',
+        path: member.justification_document.path || '',
+        taille: member.justification_document.taille || 0,
+        dateUpload: member.justification_document.dateUpload || new Date().toISOString()
+      } : undefined
+    };
+  };
+
+  // Fonction de mappage inverse MembreFamilleFormData vers FamilyMemberFormData
+  const mapMembreFamilleFormDataToFamilyMemberFormData = (data: Partial<MembreFamilleFormData>): Partial<any> => {
+    const mappedData: any = {};
+    
+    if (data.nom !== undefined) mappedData.last_name = data.nom;
+    if (data.prenom !== undefined) mappedData.first_name = data.prenom;
+    if (data.npi !== undefined) mappedData.npi = data.npi;
+    if (data.acteNaissance !== undefined) mappedData.birth_certificate_ref = data.acteNaissance;
+    if (data.dateNaissance !== undefined) mappedData.date_of_birth = data.dateNaissance;
+    if (data.relation !== undefined) mappedData.relation = data.relation;
+    if (data.pieceJustificative !== undefined) mappedData.justification_document = data.pieceJustificative;
+    
+    return mappedData;
+  };
+
   const handleEditMembre = (membre: FamilyMember) => {
-    setMembreToEdit(membre);
+    const mappedMembre = mapFamilyMemberToMembreFamille(membre);
+    setMembreToEdit(mappedMembre);
     setShowEditForm(true);
   };
 
-  const handleSaveMembre = async (id: string, data: any): Promise<boolean> => {
+  const handleSaveMembre = async (id: string, data: Partial<MembreFamilleFormData>): Promise<boolean> => {
     try {
-      const success = await FamilyService.updateFamilyMember(id, data);
+      const mappedData = mapMembreFamilleFormDataToFamilyMemberFormData(data);
+      const success = await FamilyService.updateFamilyMember(id, mappedData);
       if (success) {
         setSuccessMessage('Membre de famille modifié avec succès par l\'administrateur.');
         setTimeout(() => setSuccessMessage(''), 5000);
@@ -306,11 +374,46 @@ export function GestionAdherents() {
     }
   };
 
+  // Fonction pour vérifier si une relation peut être ajoutée/modifiée
+  const canAddRelationForMember = async (relation: string, userId: string, currentMemberId?: string): Promise<boolean> => {
+    try {
+      // Récupérer les membres de famille actuels pour cet utilisateur
+      const currentFamilyMembers = getMembresFamilleByAdherent(userId);
+      
+      // Filtrer le membre actuel si on est en train de le modifier
+      const otherMembers = currentMemberId 
+        ? currentFamilyMembers.filter(m => m.id !== currentMemberId)
+        : currentFamilyMembers;
+      
+      switch (relation) {
+        case 'epoux':
+        case 'epouse':
+          return !otherMembers.some(m => m.relation === 'epoux' || m.relation === 'epouse');
+        case 'pere':
+          return !otherMembers.some(m => m.relation === 'pere');
+        case 'mere':
+          return !otherMembers.some(m => m.relation === 'mere');
+        case 'beau_pere':
+          return !otherMembers.some(m => m.relation === 'beau_pere');
+        case 'belle_mere':
+          return !otherMembers.some(m => m.relation === 'belle_mere');
+        case 'enfant':
+          return otherMembers.filter(m => m.relation === 'enfant').length < 6;
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('Error checking relation availability:', error);
+      return false;
+    }
+  };
+  // Calculer les statistiques basées sur les données réelles
+  const membresOnly = adherents.filter(a => a.role === 'membre');
   const stats = {
-    total: adherents.filter(a => a.role === 'membre').length,
-    actifs: adherents.filter(a => a.role === 'membre').length, // Tous actifs pour l'instant
-    inactifs: 0,
-    suspendus: 0,
+    total: membresOnly.length,
+    actifs: membresOnly.filter(a => a.is_active !== false).length, // null ou true = actif
+    inactifs: membresOnly.filter(a => a.is_active === false).length,
+    suspendus: membresOnly.filter(a => a.is_active === false).length, // Même chose que inactifs pour l'instant
     totalMembres: membresFamille.length
   };
 
@@ -513,6 +616,7 @@ export function GestionAdherents() {
           {adherentsFiltres.map((adherent) => {
             const membresFamilleAdherent = getMembresFamilleByAdherent(adherent.id);
             const isExpanded = expandedAdherents.has(adherent.id);
+            const isActive = adherent.is_active !== false; // null ou true = actif
             
             return (
               <div key={adherent.id}>
@@ -551,8 +655,12 @@ export function GestionAdherents() {
                             <h3 className="text-lg font-medium text-gray-900">
                               {adherent.full_name}
                             </h3>
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Actif
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              isActive 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {isActive ? 'Actif' : 'Suspendu'}
                             </span>
                             {membresFamilleAdherent.length > 0 && (
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
@@ -600,8 +708,8 @@ export function GestionAdherents() {
                         <Edit className="w-4 h-4" />
                       </button>
                       
-                      {/* Actions temporairement désactivées */}
-                      {false && (
+                      {/* Actions de gestion du statut */}
+                      {!isActive ? (
                         <button 
                           onClick={() => confirmAction('activer', adherent)}
                           className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded transition-colors"
@@ -609,9 +717,7 @@ export function GestionAdherents() {
                         >
                           <UserCheck className="w-4 h-4" />
                         </button>
-                      )}
-                      
-                      {false && (
+                      ) : (
                         <button 
                           onClick={() => confirmAction('suspendre', adherent)}
                           className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
@@ -755,6 +861,18 @@ export function GestionAdherents() {
                   Cette action est irréversible. Le membre de famille sera définitivement supprimé.
                 </p>
               </div>
+            ) : showConfirmModal.action === 'activer' ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-green-800">
+                  L'adhérent pourra à nouveau accéder à la plateforme et soumettre des demandes.
+                </p>
+              </div>
+            ) : showConfirmModal.action === 'suspendre' ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-red-800">
+                  L'adhérent ne pourra plus accéder à la plateforme jusqu'à sa réactivation.
+                </p>
+              </div>
             ) : null}
 
             <div className="flex space-x-3">
@@ -801,12 +919,12 @@ export function GestionAdherents() {
             setMembreToEdit(null);
           }}
           canAddRelation={(relation, currentId) => {
-            // Permettre de garder la relation actuelle ou vérifier si une nouvelle relation est disponible
+            // Permettre de garder la relation actuelle
             if (currentId && membreToEdit && relation === membreToEdit.relation) {
               return true;
             }
-            // TODO: Implémenter la vérification avec Supabase
-            return true;
+            // Vérifier si la nouvelle relation est disponible
+            return canAddRelationForMember(relation, membreToEdit.member_of_user_id, currentId);
           }}
         />
       )}

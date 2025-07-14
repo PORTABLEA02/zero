@@ -40,6 +40,7 @@ export interface MembreFamille {
   pieceJustificative?: {
     nom: string;
     url: string;
+    path: string;
     taille: number;
     dateUpload: string;
   };
