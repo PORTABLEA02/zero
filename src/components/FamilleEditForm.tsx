@@ -4,7 +4,7 @@ import { X, User, Calendar, Users, Upload, Save, AlertCircle } from 'lucide-reac
 
 interface FamilleEditFormProps {
   membre: MembreFamille;
-  onSave: (id: string, data: Partial<MembreFamilleFormData>) => Promise<boolean>;
+  onSave: (id: string, data: Partial<MembreFamilleFormData>) => boolean;
   onCancel: () => void;
   canAddRelation: (relation: MembreFamille['relation'], currentId?: string) => boolean;
 }
@@ -73,7 +73,7 @@ export function FamilleEditForm({ membre, onSave, onCancel, canAddRelation }: Fa
       dataToSave.pieceJustificative = null as any;
     }
 
-    const success = await onSave(membre.id, dataToSave);
+    const success = onSave(membre.id, dataToSave);
     if (success) {
       onCancel();
     } else {

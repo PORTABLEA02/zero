@@ -6,7 +6,6 @@ import { AuthService } from '../../services/authService';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { supabase } from '../../lib/supabase';
-import { MembreFamille, MembreFamilleFormData } from '../../types';
 import { 
   Users, 
   Plus, 
@@ -55,7 +54,7 @@ export function GestionAdherents() {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
   const [showEditForm, setShowEditForm] = useState(false);
-  const [membreToEdit, setMembreToEdit] = useState<MembreFamille | null>(null);
+  const [membreToEdit, setMembreToEdit] = useState<FamilyMember | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
     action: 'activer' | 'suspendre' | 'reinitialiser' | 'supprimer_membre' | null;
@@ -292,52 +291,14 @@ React.useEffect(() => {
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
-  // Fonction de mappage FamilyMember (Supabase) vers MembreFamille (Formulaire)
-  const mapFamilyMemberToMembreFamille = (member: FamilyMember): MembreFamille => {
-    return {
-      id: member.id,
-      nom: member.last_name,
-      prenom: member.first_name,
-      npi: member.npi,
-      acteNaissance: member.birth_certificate_ref,
-      dateNaissance: member.date_of_birth,
-      relation: member.relation,
-      dateAjout: member.date_added,
-      pieceJustificative: member.justification_document ? {
-        nom: member.justification_document.nom || 'Document',
-        url: member.justification_document.url || '',
-        path: member.justification_document.path || '',
-        taille: member.justification_document.taille || 0,
-        dateUpload: member.justification_document.dateUpload || new Date().toISOString()
-      } : undefined
-    };
-  };
-
-  // Fonction de mappage inverse MembreFamilleFormData vers FamilyMemberFormData
-  const mapMembreFamilleFormDataToFamilyMemberFormData = (data: Partial<MembreFamilleFormData>): Partial<any> => {
-    const mappedData: any = {};
-    
-    if (data.nom !== undefined) mappedData.last_name = data.nom;
-    if (data.prenom !== undefined) mappedData.first_name = data.prenom;
-    if (data.npi !== undefined) mappedData.npi = data.npi;
-    if (data.acteNaissance !== undefined) mappedData.birth_certificate_ref = data.acteNaissance;
-    if (data.dateNaissance !== undefined) mappedData.date_of_birth = data.dateNaissance;
-    if (data.relation !== undefined) mappedData.relation = data.relation;
-    if (data.pieceJustificative !== undefined) mappedData.justification_document = data.pieceJustificative;
-    
-    return mappedData;
-  };
-
   const handleEditMembre = (membre: FamilyMember) => {
-    const mappedMembre = mapFamilyMemberToMembreFamille(membre);
-    setMembreToEdit(mappedMembre);
+    setMembreToEdit(membre);
     setShowEditForm(true);
   };
 
-  const handleSaveMembre = async (id: string, data: Partial<MembreFamilleFormData>): Promise<boolean> => {
+  const handleSaveMembre = async (id: string, data: any): Promise<boolean> => {
     try {
-      const mappedData = mapMembreFamilleFormDataToFamilyMemberFormData(data);
-      const success = await FamilyService.updateFamilyMember(id, mappedData);
+      const success = await FamilyService.updateFamilyMember(id, data);
       if (success) {
         setSuccessMessage('Membre de famille modifié avec succès par l\'administrateur.');
         setTimeout(() => setSuccessMessage(''), 5000);
