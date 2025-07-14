@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Download, FileText, AlertCircle, CheckCircle, X, Users, Eye, Edit } from 'lucide-react';
+import { AuthService } from '../../services/authService';
+import { AuditService } from '../../services/auditService';
 
 interface UserPreview {
   nom: string;
@@ -13,17 +15,61 @@ interface UserPreview {
   lineNumber: number;
 }
 
+interface ImportHistory {
+  id: string;
+  date: string;
+  filename: string;
+  total: number;
+  success: number;
+  errors: number;
+  status: 'success' | 'partial' | 'failed';
+}
+
 export function ImportationUtilisateurs() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [usersPreviews, setUsersPreviews] = useState<UserPreview[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [importResults, setImportResults] = useState<{
     success: number;
     errors: number;
     total: number;
     details: string[];
+    failedUsers: Array<{user: UserPreview, error: string}>;
   } | null>(null);
+  const [importHistory, setImportHistory] = useState<ImportHistory[]>([]);
+
+  // Charger l'historique des importations au montage
+  React.useEffect(() => {
+    loadImportHistory();
+  }, []);
+
+  const loadImportHistory = async () => {
+    try {
+      // Récupérer les logs d'audit liés aux importations
+      const logs = await AuditService.getLogsByModule('Importation');
+      const history = logs
+        .filter(log => log.action === 'Importation utilisateurs')
+        .map(log => {
+          const details = log.details ? JSON.parse(log.details) : {};
+          return {
+            id: log.id,
+            date: log.log_timestamp,
+            filename: details.filename || 'Fichier inconnu',
+            total: details.total || 0,
+            success: details.success || 0,
+            errors: details.errors || 0,
+            status: details.errors === 0 ? 'success' : details.success > 0 ? 'partial' : 'failed'
+          } as ImportHistory;
+        })
+        .slice(0, 10); // Garder seulement les 10 dernières
+      
+      setImportHistory(history);
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'historique:', error);
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -41,18 +87,36 @@ export function ImportationUtilisateurs() {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setUploadedFile(e.dataTransfer.files[0]);
-      setShowPreview(false);
-      setUsersPreviews([]);
+      handleFileSelection(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setUploadedFile(e.target.files[0]);
-      setShowPreview(false);
-      setUsersPreviews([]);
+      handleFileSelection(e.target.files[0]);
     }
+  };
+
+  const handleFileSelection = (file: File) => {
+    // Vérifier le type de fichier
+    const allowedTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      alert('Type de fichier non supporté. Utilisez CSV ou Excel (.xlsx, .xls)');
+      return;
+    }
+
+    // Vérifier la taille (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Fichier trop volumineux. Taille maximale : 10 MB');
+      return;
+    }
+
+    setUploadedFile(file);
+    setShowPreview(false);
+    setUsersPreviews([]);
+    setImportResults(null);
   };
 
   const parseCSVFile = (file: File): Promise<UserPreview[]> => {
@@ -62,15 +126,31 @@ export function ImportationUtilisateurs() {
         try {
           const text = e.target?.result as string;
           const lines = text.split('\n').filter(line => line.trim());
-          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
           
+          if (lines.length === 0) {
+            reject(new Error('Fichier vide'));
+            return;
+          }
+
+          const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+          
+          // Vérifier les colonnes requises
+          const requiredColumns = ['nom', 'prenom', 'email', 'telephone', 'mot_de_passe'];
+          const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+          
+          if (missingColumns.length > 0) {
+            reject(new Error(`Colonnes manquantes: ${missingColumns.join(', ')}`));
+            return;
+          }
+
           const users: UserPreview[] = [];
           
           for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => v.trim());
+            // Parser la ligne CSV en gérant les guillemets
+            const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
             const errors: string[] = [];
             
-            // Validation des données
+            // Extraire les valeurs selon les en-têtes
             const nom = values[headers.indexOf('nom')] || '';
             const prenom = values[headers.indexOf('prenom')] || '';
             const email = values[headers.indexOf('email')] || '';
@@ -79,34 +159,59 @@ export function ImportationUtilisateurs() {
             const adresse = values[headers.indexOf('adresse')] || '';
             const mot_de_passe = values[headers.indexOf('mot_de_passe')] || '';
             
-            // Validation
-            if (!nom) errors.push('Nom manquant');
-            if (!prenom) errors.push('Prénom manquant');
-            if (!email) errors.push('Email manquant');
-            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Format email invalide');
-            if (!telephone) errors.push('Téléphone manquant');
-            if (!mot_de_passe) errors.push('Mot de passe manquant');
-            else if (mot_de_passe.length < 8) errors.push('Mot de passe trop court (min. 8 caractères)');
+            // Validation des données
+            if (!nom.trim()) errors.push('Nom manquant');
+            if (!prenom.trim()) errors.push('Prénom manquant');
+            if (!email.trim()) {
+              errors.push('Email manquant');
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              errors.push('Format email invalide');
+            }
+            if (!telephone.trim()) {
+              errors.push('Téléphone manquant');
+            } else if (!/^\+?[\d\s-()]+$/.test(telephone)) {
+              errors.push('Format téléphone invalide');
+            }
+            if (!mot_de_passe.trim()) {
+              errors.push('Mot de passe manquant');
+            } else if (mot_de_passe.length < 8) {
+              errors.push('Mot de passe trop court (min. 8 caractères)');
+            } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(mot_de_passe)) {
+              errors.push('Mot de passe faible (majuscule, minuscule, chiffre requis)');
+            }
             
             users.push({
-              nom,
-              prenom,
-              email,
-              telephone,
-              service,
-              adresse,
-              mot_de_passe,
+              nom: nom.trim(),
+              prenom: prenom.trim(),
+              email: email.trim().toLowerCase(),
+              telephone: telephone.trim(),
+              service: service.trim(),
+              adresse: adresse.trim(),
+              mot_de_passe: mot_de_passe.trim(),
               errors,
               lineNumber: i + 1
             });
           }
+          
+          // Vérifier les doublons d'email dans le fichier
+          const emailCounts = new Map<string, number>();
+          users.forEach(user => {
+            if (user.email) {
+              const count = emailCounts.get(user.email) || 0;
+              emailCounts.set(user.email, count + 1);
+              if (count > 0) {
+                user.errors.push('Email en doublon dans le fichier');
+              }
+            }
+          });
           
           resolve(users);
         } catch (error) {
           reject(error);
         }
       };
-      reader.readAsText(file);
+      reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+      reader.readAsText(file, 'UTF-8');
     });
   };
 
@@ -114,41 +219,122 @@ export function ImportationUtilisateurs() {
     if (!uploadedFile) return;
     
     try {
+      setIsImporting(true);
       const users = await parseCSVFile(uploadedFile);
+      
+      if (users.length > 1000) {
+        alert('Trop d\'utilisateurs dans le fichier. Maximum : 1000 utilisateurs par importation.');
+        return;
+      }
+      
       setUsersPreviews(users);
       setShowPreview(true);
     } catch (error) {
       console.error('Erreur lors de l\'analyse du fichier:', error);
-      alert('Erreur lors de l\'analyse du fichier. Vérifiez le format.');
+      alert(`Erreur lors de l'analyse du fichier: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsImporting(false);
     }
   };
 
-  const simulateImport = () => {
-    const validUsers = usersPreviews.filter(user => user.errors.length === 0);
-    const invalidUsers = usersPreviews.filter(user => user.errors.length > 0);
+  const performImport = async () => {
+    if (!uploadedFile) return;
     
-    // Simulation d'importation
-    setTimeout(() => {
-      setImportResults({
-        success: validUsers.length,
-        errors: invalidUsers.length,
-        total: usersPreviews.length,
-        details: [
-          `${validUsers.length} utilisateurs importés avec succès`,
-          `${invalidUsers.length} erreurs détectées`,
-          ...invalidUsers.slice(0, 5).map(user => 
-            `Ligne ${user.lineNumber}: ${user.errors.join(', ')}`
-          )
-        ]
-      });
+    const validUsers = usersPreviews.filter(user => user.errors.length === 0);
+    
+    if (validUsers.length === 0) {
+      alert('Aucun utilisateur valide à importer');
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const results = {
+        success: 0,
+        errors: 0,
+        total: validUsers.length,
+        details: [] as string[],
+        failedUsers: [] as Array<{user: UserPreview, error: string}>
+      };
+
+      // Importer les utilisateurs un par un
+      for (const user of validUsers) {
+        try {
+          const newUser = await AuthService.createUser(
+            user.email,
+            user.mot_de_passe,
+            {
+              full_name: `${user.prenom} ${user.nom}`,
+              role: 'membre',
+              phone: user.telephone,
+              address: user.adresse,
+              service: user.service
+            }
+          );
+
+          if (newUser) {
+            results.success++;
+            results.details.push(`✓ ${user.prenom} ${user.nom} (${user.email}) importé avec succès`);
+          } else {
+            results.errors++;
+            results.failedUsers.push({
+              user,
+              error: 'Échec de création (raison inconnue)'
+            });
+            results.details.push(`✗ ${user.prenom} ${user.nom} (${user.email}) - Échec de création`);
+          }
+        } catch (error) {
+          results.errors++;
+          const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+          results.failedUsers.push({
+            user,
+            error: errorMessage
+          });
+          results.details.push(`✗ ${user.prenom} ${user.nom} (${user.email}) - ${errorMessage}`);
+        }
+
+        // Petite pause pour éviter de surcharger l'API
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Enregistrer dans l'historique via les logs d'audit
+      await AuditService.createLog(
+        'Importation utilisateurs',
+        JSON.stringify({
+          filename: uploadedFile.name,
+          total: results.total,
+          success: results.success,
+          errors: results.errors,
+          details: results.details.slice(0, 10) // Limiter les détails
+        }),
+        results.errors === 0 ? 'success' : results.success > 0 ? 'warning' : 'error',
+        'Importation'
+      );
+
+      setImportResults(results);
       setShowPreview(false);
-    }, 2000);
+      
+      // Recharger l'historique
+      await loadImportHistory();
+
+    } catch (error) {
+      console.error('Erreur lors de l\'importation:', error);
+      alert(`Erreur lors de l'importation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const downloadTemplate = () => {
-    // Simulation du téléchargement du modèle
-    const csvContent = "nom,prenom,email,telephone,service,adresse,mot_de_passe\nDupont,Jean,jean.dupont@email.com,+221771234567,Informatique,Dakar,motdepasse123\nMartin,Marie,marie.martin@email.com,+221769876543,Comptabilite,Thies,password456\n";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const csvContent = [
+      'nom,prenom,email,telephone,service,adresse,mot_de_passe',
+      'Dupont,Jean,jean.dupont@email.com,+221771234567,Informatique,"Dakar, Plateau",MotDePasse123!',
+      'Martin,Marie,marie.martin@email.com,+221769876543,Comptabilité,"Thiès, Centre",SecurePass456!',
+      'Diallo,Amadou,amadou.diallo@email.com,+221775555555,Marketing,"Saint-Louis",StrongPwd789!'
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -157,8 +343,49 @@ export function ImportationUtilisateurs() {
     window.URL.revokeObjectURL(url);
   };
 
+  const downloadResults = () => {
+    if (!importResults) return;
+    
+    const csvContent = [
+      'Résultat,Nom,Prénom,Email,Erreur',
+      ...importResults.details.map(detail => {
+        const isSuccess = detail.startsWith('✓');
+        const parts = detail.split(' - ');
+        const userInfo = parts[0].replace(/^[✓✗]\s/, '');
+        const error = parts[1] || '';
+        return `${isSuccess ? 'Succès' : 'Échec'},"${userInfo}","","","${error}"`;
+      })
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport_importation_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const validUsers = usersPreviews.filter(user => user.errors.length === 0);
   const invalidUsers = usersPreviews.filter(user => user.errors.length > 0);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'bg-green-100 text-green-800';
+      case 'partial': return 'bg-yellow-100 text-yellow-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'success': return 'Réussie';
+      case 'partial': return 'Partielle';
+      case 'failed': return 'Échouée';
+      default: return 'Inconnue';
+    }
+  };
 
   return (
     <div className="p-6">
@@ -174,11 +401,12 @@ export function ImportationUtilisateurs() {
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Utilisez le modèle CSV fourni pour structurer vos données</li>
           <li>• Champs obligatoires : nom, prénom, email, téléphone, mot_de_passe</li>
-          <li>• Format accepté : CSV, Excel (.xlsx)</li>
+          <li>• Champs optionnels : service, adresse</li>
+          <li>• Format accepté : CSV avec encodage UTF-8</li>
           <li>• Taille maximale : 10 MB</li>
           <li>• Maximum 1000 utilisateurs par importation</li>
-          <li>• Le mot de passe sera utilisé tel quel pour chaque utilisateur</li>
-          <li>• Recommandation : utilisez des mots de passe sécurisés (min. 8 caractères)</li>
+          <li>• Les mots de passe doivent contenir au moins 8 caractères avec majuscule, minuscule et chiffre</li>
+          <li>• Les emails doivent être uniques dans le système</li>
         </ul>
       </div>
 
@@ -223,12 +451,17 @@ export function ImportationUtilisateurs() {
               onChange={handleFileChange}
               className="hidden"
               id="file-upload"
+              disabled={isImporting}
             />
             <label
               htmlFor="file-upload"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+              className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isImporting 
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+              }`}
             >
-              Sélectionner un fichier
+              {isImporting ? 'Traitement...' : 'Sélectionner un fichier'}
             </label>
           </div>
 
@@ -250,8 +483,10 @@ export function ImportationUtilisateurs() {
                     setUploadedFile(null);
                     setShowPreview(false);
                     setUsersPreviews([]);
+                    setImportResults(null);
                   }}
                   className="text-gray-400 hover:text-gray-600"
+                  disabled={isImporting}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -260,17 +495,27 @@ export function ImportationUtilisateurs() {
               <div className="flex space-x-2 mt-4">
                 <button
                   onClick={handlePreviewFile}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isImporting}
+                  className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                    isImporting
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
                   <Eye className="w-4 h-4 inline mr-2" />
-                  Prévisualiser
+                  {isImporting ? 'Analyse...' : 'Prévisualiser'}
                 </button>
-                {showPreview && usersPreviews.length > 0 && (
+                {showPreview && usersPreviews.length > 0 && validUsers.length > 0 && (
                   <button
-                    onClick={simulateImport}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                    onClick={performImport}
+                    disabled={isImporting}
+                    className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                      isImporting
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
-                    Lancer l'importation
+                    {isImporting ? 'Importation...' : `Importer ${validUsers.length} utilisateur(s)`}
                   </button>
                 )}
               </div>
@@ -307,31 +552,45 @@ export function ImportationUtilisateurs() {
               </div>
 
               {/* Détails */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
                 <h4 className="font-medium text-gray-900 mb-3">Détails de l'importation</h4>
                 <div className="space-y-2">
-                  {importResults.details.map((detail, index) => (
+                  {importResults.details.slice(0, 20).map((detail, index) => (
                     <div key={index} className="flex items-start text-sm">
-                      {detail.includes('succès') ? (
+                      {detail.includes('✓') ? (
                         <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                       ) : (
                         <AlertCircle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
                       )}
-                      <span className={detail.includes('succès') ? 'text-green-700' : 'text-red-700'}>
-                        {detail}
+                      <span className={detail.includes('✓') ? 'text-green-700' : 'text-red-700'}>
+                        {detail.replace(/^[✓✗]\s/, '')}
                       </span>
                     </div>
                   ))}
+                  {importResults.details.length > 20 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      ... et {importResults.details.length - 20} autres résultats
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex space-x-3">
-                <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={downloadResults}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Download className="w-4 h-4 inline mr-2" />
                   Télécharger le rapport
                 </button>
                 <button 
-                  onClick={() => setImportResults(null)}
+                  onClick={() => {
+                    setImportResults(null);
+                    setUploadedFile(null);
+                    setShowPreview(false);
+                    setUsersPreviews([]);
+                  }}
                   className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Nouvelle importation
@@ -353,6 +612,7 @@ export function ImportationUtilisateurs() {
               <button
                 onClick={() => setShowPreview(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isImporting}
               >
                 <X className="w-6 h-6" />
               </button>
@@ -444,15 +704,21 @@ export function ImportationUtilisateurs() {
                 <button
                   onClick={() => setShowPreview(false)}
                   className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  disabled={isImporting}
                 >
                   Fermer
                 </button>
                 {validUsers.length > 0 && (
                   <button
-                    onClick={simulateImport}
-                    className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                    onClick={performImport}
+                    disabled={isImporting}
+                    className={`px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors ${
+                      isImporting
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        : 'text-white bg-green-600 hover:bg-green-700'
+                    }`}
                   >
-                    Importer {validUsers.length} utilisateur(s)
+                    {isImporting ? 'Importation...' : `Importer ${validUsers.length} utilisateur(s)`}
                   </button>
                 )}
               </div>
@@ -467,33 +733,44 @@ export function ImportationUtilisateurs() {
           <h3 className="text-lg font-semibold text-gray-900">Historique des importations</h3>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium text-gray-900">Importation du 20/01/2024</h4>
-                  <p className="text-sm text-gray-600">Fichier: adherents_janvier_2024.csv</p>
-                </div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Réussie
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-green-600">45</span> importés
-                </div>
-                <div>
-                  <span className="font-medium text-red-600">3</span> erreurs
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">48</span> total
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Mots de passe configurés automatiquement pour tous les utilisateurs importés
-              </p>
+          {importHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">Aucune importation précédente</p>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {importHistory.map((item) => (
+                <div key={item.id} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-medium text-gray-900">
+                        Importation du {new Date(item.date).toLocaleDateString('fr-FR')}
+                      </h4>
+                      <p className="text-sm text-gray-600">Fichier: {item.filename}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                      {getStatusLabel(item.status)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-green-600">{item.success}</span> importés
+                    </div>
+                    <div>
+                      <span className="font-medium text-red-600">{item.errors}</span> erreurs
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">{item.total}</span> total
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(item.date).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

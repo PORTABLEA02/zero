@@ -133,43 +133,41 @@ export class AuthService {
     service?: string;
   }): Promise<AuthUser | null> {
     try {
-      // Créer l'utilisateur dans Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name,
-          role: userData.role
-        }
-      });
-
-      if (authError || !authData.user) {
-        console.error('Create user error:', authError);
+      // Obtenir le token d'authentification actuel
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        console.error('No valid session found');
         return null;
       }
 
-      // Le profil sera créé automatiquement par le trigger handle_new_user
-      // Attendre un peu pour que le trigger s'exécute
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mettre à jour le profil avec les informations supplémentaires
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          phone: userData.phone,
-          address: userData.address,
-          service: userData.service,
-          must_change_password: true,
-          is_first_login: true,
-          adhesion_number: userData.role === 'membre' ? `MUS-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}` : null,
-          employee_number: userData.role !== 'membre' ? `EMP-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}` : null,
-          date_adhesion: userData.role === 'membre' ? new Date().toISOString().split('T')[0] : null
+      // Appeler l'Edge Function pour créer l'utilisateur
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          userData
         })
-        .eq('id', authData.user.id);
+      });
 
-      if (updateError) {
-        console.error('Update profile error:', updateError);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Create user error:', errorData);
+        throw new Error(errorData.error || 'Failed to create user');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        console.error('Create user failed:', result);
+        return null;
       }
 
       // Log de création d'utilisateur
@@ -180,12 +178,8 @@ export class AuthService {
         'Administration'
       );
 
-      return {
-        id: authData.user.id,
-        name: userData.full_name,
-        email: email,
-        role: userData.role
-      };
+      return result.user;
+      
     } catch (error) {
       console.error('Create user error:', error);
       return null;
@@ -194,14 +188,39 @@ export class AuthService {
 
   static async resetUserPassword(userId: string, email: string): Promise<boolean> {
     try {
-      // Réinitialiser le mot de passe via l'API Admin
-      const { error } = await supabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: email
+      // Obtenir le token d'authentification actuel
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        console.error('No valid session found');
+        return false;
+      }
+
+      // Appeler l'Edge Function pour réinitialiser le mot de passe
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-password`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          email
+        })
       });
 
-      if (error) {
-        console.error('Reset password error:', error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Reset password error:', errorData);
+        return false;
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        console.error('Reset password failed:', result);
         return false;
       }
 
