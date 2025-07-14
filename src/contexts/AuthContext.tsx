@@ -94,17 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const success = await AuthService.updatePassword(newPassword);
       
       if (success && user) {
-        setUser({
-          ...user,
-          mustChangePassword: false,
-          isFirstLogin: false,
-          lastPasswordChange: new Date().toISOString()
-        });
+        // Recharger complètement le profil utilisateur depuis Supabase
+        // pour s'assurer que l'état est synchronisé avec la source de vérité
+        const refreshedUser = await AuthService.getCurrentUser();
+        if (refreshedUser) {
+          setUser(refreshedUser);
+        }
         
         // Log de changement de mot de passe
         await AuditService.createLog(
           'Changement de mot de passe',
-          `Mot de passe modifié pour ${user.email}`,
+          `Mot de passe modifié pour ${refreshedUser?.email || user.email}`,
           'success',
           'Sécurité'
         );

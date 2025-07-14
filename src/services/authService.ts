@@ -143,6 +143,7 @@ export class AuthService {
 
       // Appeler l'Edge Function pour créer l'utilisateur
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`;
+      console.log('Regis infos Calling Supabase Function:', apiUrl); 
       
       const response = await fetch(apiUrl, {
         method: 'POST',
