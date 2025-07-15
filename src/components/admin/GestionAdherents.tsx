@@ -50,6 +50,8 @@ export function GestionAdherents() {
 
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState<string>('tous');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showAddForm, setShowAddForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [expandedAdherents, setExpandedAdherents] = useState<Set<string>>(new Set());
@@ -105,6 +107,11 @@ React.useEffect(() => {
     }
   }, [searchParams]);
 
+  // Réinitialiser la page quand les filtres changent
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [recherche, filtreStatut]);
+
   const adherentsFiltres = adherents.filter(adherent => {
     // Filtrer seulement les membres (pas admin/controleur)
     if (adherent.role !== 'membre') return false;
@@ -125,6 +132,23 @@ React.useEffect(() => {
     
     return matchRecherche && matchStatut;
   });
+
+  // Calculs de pagination
+  const totalItems = adherentsFiltres.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const adherentsPagines = adherentsFiltres.slice(startIndex, endIndex);
+
+  // Fonctions de pagination
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToFirstPage = () => goToPage(1);
+  const goToLastPage = () => goToPage(totalPages);
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+  const goToNextPage = () => goToPage(currentPage + 1);
 
   const getMembresFamilleByAdherent = (adherentId: string) => {
     return membresFamille.filter(membre => membre.member_of_user_id === adherentId);
@@ -523,7 +547,7 @@ React.useEffect(() => {
 
       {/* Filtres et recherche */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
             <div className="relative">
@@ -551,22 +575,51 @@ React.useEffect(() => {
               <option value="suspendu">Suspendu</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Éléments par page</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={5}>5 par page</option>
+              <option value={10}>10 par page</option>
+              <option value={20}>20 par page</option>
+              <option value={50}>50 par page</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Liste des adhérents avec structure arborescente */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Adhérents et leurs familles ({adherentsFiltres.length})
-          </h3>
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Adhérents et leurs familles ({totalItems})
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Affichage de {startIndex + 1} à {Math.min(endIndex, totalItems)} sur {totalItems} adhérents
+              </p>
+            </div>
+            {totalPages > 1 && (
+              <div className="text-sm text-gray-600">
+                Page {currentPage} sur {totalPages}
+              </div>
+            )}
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             Cliquez sur un adhérent pour voir les membres de sa famille
           </p>
         </div>
         
         <div className="divide-y divide-gray-200">
-          {adherentsFiltres.map((adherent) => {
+          {adherentsPagines.map((adherent) => {
             const membresFamilleAdherent = getMembresFamilleByAdherent(adherent.id);
             const isExpanded = expandedAdherents.has(adherent.id);
             const isActive = adherent.is_active !== false; // null ou true = actif
@@ -763,9 +816,86 @@ React.useEffect(() => {
             );
           })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Affichage de <span className="font-medium">{startIndex + 1}</span> à{' '}
+                <span className="font-medium">{Math.min(endIndex, totalItems)}</span> sur{' '}
+                <span className="font-medium">{totalItems}</span> résultats
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={goToFirstPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Premier
+                </button>
+                
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Précédent
+                </button>
+                
+                {/* Numéros de page */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 5) {
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNumber
+                            ? 'text-blue-600 bg-blue-50 border border-blue-300'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Suivant
+                </button>
+                
+                <button
+                  onClick={goToLastPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Dernier
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {adherentsFiltres.length === 0 && (
+      {totalItems === 0 && (
         <div className="text-center py-8">
           <Users className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun adhérent trouvé</h3>
