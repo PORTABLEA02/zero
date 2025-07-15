@@ -380,15 +380,21 @@ export function MonCompte() {
                   </div>
                   <div>
                     <span className="text-blue-800 font-medium">Statut :</span>
-                    <span className="text-blue-700 ml-2">Actif</span>
+                    <span className="text-blue-700 ml-2">
+                      {user?.is_active !== false ? 'Actif' : 'Inactif'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-blue-800 font-medium">Date d'adhésion :</span>
-                    <span className="text-blue-700 ml-2">15 janvier 2023</span>
+                    <span className="text-blue-700 ml-2">
+                      {profileData.dateAdhesion ? new Date(profileData.dateAdhesion).toLocaleDateString('fr-FR') : 'Non renseigné'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-blue-800 font-medium">Cotisations :</span>
-                    <span className="text-blue-700 ml-2">À jour</span>
+                    <span className="text-blue-700 ml-2">
+                      {user?.is_active !== false ? 'À jour' : 'En retard'}
+                    </span>
                   </div>
                 </div>
               </div>

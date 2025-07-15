@@ -48,6 +48,20 @@ export function AdministrateurDashboard() {
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).length;
 
+  // Calculer les changements par rapport au mois précédent
+  const demandesMoisPrecedent = demandes.filter(d => {
+    const date = new Date(d.submission_date);
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return date.getMonth() === lastMonth.getMonth() && date.getFullYear() === lastMonth.getFullYear();
+  }).length;
+
+  const calculateChange = (current: number, previous: number): string => {
+    if (previous === 0) return current > 0 ? '+100%' : '0%';
+    const change = ((current - previous) / previous) * 100;
+    return change >= 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`;
+  };
+
   if (loading || demandesLoading) {
     return (
       <div className="p-6">
@@ -67,7 +81,7 @@ export function AdministrateurDashboard() {
     {
       title: 'Total adhérents',
       value: totalAdherents,
-      change: '+0%',
+      change: '—', // Pas de comparaison temporelle pour le total
       icon: Users,
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
@@ -76,7 +90,7 @@ export function AdministrateurDashboard() {
     {
       title: 'Demandes en attente',
       value: demandesEnAttente,
-      change: '+0%',
+      change: '—', // Statut instantané, pas de comparaison temporelle
       icon: Clock,
       iconBg: 'bg-orange-100',
       iconColor: 'text-orange-600',
@@ -85,7 +99,7 @@ export function AdministrateurDashboard() {
     {
       title: 'Demandes traitées',
       value: demandesTraitees,
-      change: '+0%',
+      change: '—', // Statut instantané, pas de comparaison temporelle
       icon: CheckCircle,
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600',
@@ -94,7 +108,7 @@ export function AdministrateurDashboard() {
     {
       title: 'Demandes ce mois',
       value: demandesCeMois,
-      change: '+0%',
+      change: calculateChange(demandesCeMois, demandesMoisPrecedent),
       icon: FileText,
       iconBg: 'bg-purple-100',
       iconColor: 'text-purple-600',
@@ -122,7 +136,9 @@ export function AdministrateurDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
                 <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stat.value}</p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className={`text-sm mt-1 ${
+                  stat.change.startsWith('+') ? 'text-green-600' : stat.change.startsWith('-') ? 'text-red-600' : 'text-gray-500'
+                }`}>
                   <TrendingUp className="inline w-4 h-4 mr-1" />
                   {stat.change}
                 </p>

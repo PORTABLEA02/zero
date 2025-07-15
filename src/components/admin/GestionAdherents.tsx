@@ -68,7 +68,6 @@ React.useEffect(() => {
     try {
       setLoading(true);
 
-      // ✅ Étape 1 : Récupérer l'utilisateur connecté
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -77,19 +76,11 @@ React.useEffect(() => {
       }
 
       const user = userData.user;
-      console.log('✅ Utilisateur connecté :', user);
-      console.log('🪪 ID utilisateur :', user?.id);
-      console.log('📧 Email utilisateur :', user?.email);
-      console.log('🎭 Role utilisateur (métadonnée) :', user?.user_metadata?.role);
 
-      // ✅ Étape 2 : Charger les données liées aux profils et membres de famille
       const [profilesData, familyData] = await Promise.all([
         ProfileService.getAllProfiles(),
         FamilyService.getAllFamilyMembers()
       ]);
-
-      console.log('👤 Adhérents récupérés depuis Supabase :', profilesData);
-      console.log('👨‍👩‍👧‍👦 Membres de famille récupérés :', familyData);
 
       setAdherents(profilesData);
       setMembresFamille(familyData);

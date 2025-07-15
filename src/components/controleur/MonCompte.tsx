@@ -387,11 +387,13 @@ export function MonCompte() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-orange-800 font-medium">Rôle :</span>
-                      <span className="text-orange-700 ml-2">{profileData.numeroEmploye || 'Non attribué'}</span>
+                      <span className="text-orange-700 ml-2">Contrôleur</span>
                     </div>
                     <div>
                       <span className="text-orange-800 font-medium">Statut :</span>
-                      <span className="text-orange-700 ml-2">Actif</span>
+                      <span className="text-orange-700 ml-2">
+                        {user?.is_active !== false ? 'Actif' : 'Inactif'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-orange-800 font-medium">Permissions :</span>
@@ -399,7 +401,9 @@ export function MonCompte() {
                     </div>
                     <div>
                       <span className="text-orange-800 font-medium">Dernière connexion :</span>
-                      <span className="text-orange-700 ml-2">Aujourd'hui</span>
+                      <span className="text-orange-700 ml-2">
+                        {user?.lastPasswordChange ? new Date(user.lastPasswordChange).toLocaleDateString('fr-FR') : 'Inconnue'}
+                      </span>
                     </div>
                   </div>
                 </div>
