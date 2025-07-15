@@ -110,23 +110,38 @@ export function GestionDemandes() {
   }, [demandes, filtreStatut, filtreType, recherche]);
 
   const handleValider = async (demandeId: string) => {
-    if (!user) return;
-    
-    setIsProcessing(true);
-    try {
-      const success = await updateDemandeStatut(demandeId, 'validee', user.id, user.name, commentaire);
-      if (success) {
-        setSelectedDemande(null);
-        setActionType(null);
-        setCommentaire('');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la validation:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  if (!user) {
+    toast.error('Connectez-vous pour valider');
+    return;
+  }
 
+  setIsProcessing(true);
+
+  try {
+    const success = await updateDemandeStatut(
+      demandeId, 
+      'validee', 
+      user.id, 
+      user.name, 
+      commentaire
+    );
+
+    if (success) {
+      toast.success('Validé avec succès');
+      setSelectedDemande(null);
+      setActionType(null);
+      setCommentaire('');
+      // Option: trigger data refresh
+    } else {
+      toast.error('La validation a échoué');
+    }
+  } catch (error) {
+    toast.error(`Erreur: ${error instanceof Error ? error.message : 'Inconnue'}`);
+    console.error('Validation error:', error);
+  } finally {
+    setIsProcessing(false);
+  }
+};
   const handleRejeter = async (demandeId: string) => {
     if (!user || !commentaire.trim()) return;
     
