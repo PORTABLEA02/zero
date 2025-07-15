@@ -12,6 +12,16 @@ export interface AuthUser {
   lastPasswordChange?: string;
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'membre' | 'controleur' | 'administrateur';
+  mustChangePassword?: boolean;
+  isFirstLogin?: boolean;
+  lastPasswordChange?: string;
+}
+
 export class AuthService {
   static async signIn(email: string, password: string): Promise<AuthUser | null> {
     try {

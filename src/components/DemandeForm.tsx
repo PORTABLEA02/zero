@@ -40,7 +40,7 @@ export function DemandeForm() {
     };
 
     loadFamilyMembers();
-  }, [user, getMembresFamilleByMembre]);
+  }, [user, getMembresFamilleByMembre, membresFamille]); // Ajouter membresFamille pour se mettre à jour quand les données changent
   
   // Montants prédéfinis pour chaque type de service
   const montantsServices = {

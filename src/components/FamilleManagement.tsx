@@ -37,7 +37,7 @@ export function FamilleManagement() {
     };
 
     loadFamilyMembers();
-  }, [user, getMembresFamilleByMembre, membresFamille]);
+  }, [user, getMembresFamilleByMembre, membresFamille]); // Garder membresFamille pour détecter les changements
 
   const handleAjouterMembre = (data: MembreFamilleFormData): boolean => {
     if (user) {
@@ -45,12 +45,8 @@ export function FamilleManagement() {
       ajouterMembreFamille(data, user.id).then(success => {
         if (success) {
           setShowForm(false);
-          // Reload family members after adding
-          getMembresFamilleByMembre(user.id).then(familyData => {
-            setUserFamilyMembers(Array.isArray(familyData) ? familyData : []);
-          }).catch(error => {
-            console.error('Error reloading family members:', error);
-          });
+          // Le contexte se charge automatiquement de rafraîchir les données
+          // via refreshFamilyMembers dans ajouterMembreFamille
         }
       }).catch(error => {
         console.error('Error adding family member:', error);

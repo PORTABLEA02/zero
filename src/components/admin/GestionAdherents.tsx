@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProfileService } from '../../services/profileService';
 import { FamilyService } from '../../services/familyService';
@@ -327,7 +328,7 @@ React.useEffect(() => {
   };
 
   // Fonction pour vérifier si une relation peut être ajoutée/modifiée
-  const canAddRelationForMember = async (relation: string, userId: string, currentMemberId?: string): Promise<boolean> => {
+  const canAddRelationForMember = useCallback(async (relation: string, userId: string, currentMemberId?: string): Promise<boolean> => {
     try {
       // Récupérer les membres de famille actuels pour cet utilisateur
       const currentFamilyMembers = getMembresFamilleByAdherent(userId);
@@ -358,7 +359,7 @@ React.useEffect(() => {
       console.error('Error checking relation availability:', error);
       return false;
     }
-  };
+  }, [membresFamille]); // Dépend de membresFamille pour se mettre à jour quand les données changent
   // Calculer les statistiques basées sur les données réelles
   const membresOnly = adherents.filter(a => a.role === 'membre');
   const stats = {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDemandes } from '../../contexts/DemandeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +22,7 @@ import {
 export function GestionDemandes() {
   const { demandes, updateDemandeStatut, loading: demandesLoading } = useDemandes();
   const { user } = useAuth();
+  console.log('👤 Utilisateur connecté:', user);
   const [searchParams] = useSearchParams();
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
   const [filtreStatut, setFiltreStatut] = useState<string>('acceptee');
@@ -86,24 +88,26 @@ export function GestionDemandes() {
     }
   }, [searchParams]);
 
-  // Filtrage sécurisé des demandes
-  const demandesFiltrees = demandes.filter(demande => {
-    const matchStatut = filtreStatut === 'tous' || demande.status === filtreStatut;
-    const matchType = filtreType === 'tous' || demande.service_type === filtreType;
-    
-    // Protection contre les valeurs undefined/null
-    const typeLabel = getTypeLabel(demande.service_type)?.toLowerCase() || '';
-    const memberName = demande.member_name?.toLowerCase() || '';
-    const beneficiaryName = demande.beneficiary_name?.toLowerCase() || '';
-    const searchTerm = recherche.toLowerCase();
-    
-    const matchRecherche = 
-      typeLabel.includes(searchTerm) ||
-      memberName.includes(searchTerm) ||
-      beneficiaryName.includes(searchTerm);
-    
-    return matchStatut && matchType && matchRecherche;
-  });
+  // Memoized filtering of demands to prevent redundant calculations
+  const demandesFiltrees = useMemo(() => {
+    return demandes.filter(demande => {
+      const matchStatut = filtreStatut === 'tous' || demande.status === filtreStatut;
+      const matchType = filtreType === 'tous' || demande.service_type === filtreType;
+      
+      // Protection contre les valeurs undefined/null
+      const typeLabel = getTypeLabel(demande.service_type)?.toLowerCase() || '';
+      const memberName = demande.member_name?.toLowerCase() || '';
+      const beneficiaryName = demande.beneficiary_name?.toLowerCase() || '';
+      const searchTerm = recherche.toLowerCase();
+      
+      const matchRecherche = 
+        typeLabel.includes(searchTerm) ||
+        memberName.includes(searchTerm) ||
+        beneficiaryName.includes(searchTerm);
+      
+      return matchStatut && matchType && matchRecherche;
+    });
+  }, [demandes, filtreStatut, filtreType, recherche]);
 
   const handleValider = async (demandeId: string) => {
     if (!user) return;
@@ -141,14 +145,16 @@ export function GestionDemandes() {
     }
   };
 
-  // Statistiques
-  const stats = {
-    total: demandes.length,
-    enAttente: demandes.filter(d => d.status === 'en_attente').length,
-    acceptees: demandes.filter(d => d.status === 'acceptee').length, // En attente de validation admin
-    validees: demandes.filter(d => d.status === 'validee').length,
-    rejetees: demandes.filter(d => d.status === 'rejetee').length
-  };
+  // Memoized statistics to prevent redundant calculations
+  const stats = useMemo(() => {
+    return {
+      total: demandes.length,
+      enAttente: demandes.filter(d => d.status === 'en_attente').length,
+      acceptees: demandes.filter(d => d.status === 'acceptee').length, // En attente de validation admin
+      validees: demandes.filter(d => d.status === 'validee').length,
+      rejetees: demandes.filter(d => d.status === 'rejetee').length
+    };
+  }, [demandes]);
 
   const demandeSelectionnee = selectedDemande ? demandes.find(d => d.id === selectedDemande) : null;
 

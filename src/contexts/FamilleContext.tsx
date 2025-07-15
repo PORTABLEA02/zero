@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { FamilyService, type FamilyMemberFormData } from '../services/familyService';
 import { AuditService } from '../services/auditService';
@@ -50,7 +51,7 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, user]);
 
-  const canAddMember = async (relation: string, membreId: string): Promise<boolean> => {
+  const canAddMember = useCallback(async (relation: string, membreId: string): Promise<boolean> => {
     if (!isAuthenticated || !user) {
       return false;
     }
@@ -61,7 +62,7 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
       console.error('Error checking if can add member:', error);
       return false;
     }
-  };
+  }, [isAuthenticated, user]);
 
   const ajouterMembreFamille = async (data: FamilyMemberFormData, membreId: string): Promise<boolean> => {
     if (!isAuthenticated || !user) {
@@ -170,7 +171,7 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getMembresFamilleByMembre = async (membreId: string): Promise<FamilyMember[]> => {
+  const getMembresFamilleByMembre = useCallback(async (membreId: string): Promise<FamilyMember[]> => {
     if (!isAuthenticated || !user) {
       return [];
     }
@@ -181,8 +182,7 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
       console.error('Error getting family members by member:', error);
       return [];
     }
-  };
-
+  }, [isAuthenticated, user]);
 
   return (
     <FamilleContext.Provider value={{
