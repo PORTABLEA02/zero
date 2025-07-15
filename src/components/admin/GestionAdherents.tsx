@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProfileService } from '../../services/profileService';
-import { FamilyService } from '../../services/familyService';
 import { AuthService } from '../../services/authService';
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
@@ -80,7 +79,8 @@ React.useEffect(() => {
 
       const [profilesData, familyData] = await Promise.all([
         ProfileService.getAllProfiles(),
-        FamilyService.getAllFamilyMembers()
+        // For admin, we need all family members to display in the management interface
+        supabase.from('family_members').select('*').order('created_at', { ascending: false }).then(({ data }) => data || [])
       ]);
 
       setAdherents(profilesData);
@@ -267,7 +267,7 @@ React.useEffect(() => {
       if (newUser) {
         setSuccessMessage(`L'adhérent ${data.prenom} ${data.nom} a été ajouté avec succès !`);
         
-        // Recharger les données
+          supabase.from('family_members').select('*').order('created_at', { ascending: false }).then(({ data }) => data || [])
         const profilesData = await ProfileService.getAllProfiles();
         setAdherents(profilesData);
         
@@ -298,8 +298,8 @@ React.useEffect(() => {
         setMembreToEdit(null);
         
         // Recharger les données
-        const familyData = await FamilyService.getAllFamilyMembers();
-        setMembresFamille(familyData);
+        const { data: familyData } = await supabase.from('family_members').select('*').order('created_at', { ascending: false });
+        setMembresFamille(familyData || []);
       }
       return success;
     } catch (error) {

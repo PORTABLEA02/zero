@@ -175,22 +175,4 @@ export class FamilyService {
     }
   }
 
-  static async getAllFamilyMembers(): Promise<FamilyMember[]> {
-    try {
-      const { data, error } = await supabase
-        .from('family_members')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Get all family members error:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Get all family members error:', error);
-      return [];
-    }
-  }
 }

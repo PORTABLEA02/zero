@@ -32,8 +32,8 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
 
     try {
       setLoading(true);
-      const allMembers = await FamilyService.getAllFamilyMembers();
-      setMembresFamille(allMembers);
+      const userMembers = await FamilyService.getFamilyMembers(user.id);
+      setMembresFamille(userMembers);
     } catch (error) {
       console.error('Error refreshing family members:', error);
     } finally {
@@ -57,12 +57,31 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      return await FamilyService.canAddRelation(membreId, relation);
+      // Use the family members already loaded in context instead of making a new API call
+      const userFamilyMembers = membresFamille.filter(m => m.member_of_user_id === membreId);
+      
+      switch (relation) {
+        case 'epoux':
+        case 'epouse':
+          return !userFamilyMembers.some(m => m.relation === 'epoux' || m.relation === 'epouse');
+        case 'pere':
+          return !userFamilyMembers.some(m => m.relation === 'pere');
+        case 'mere':
+          return !userFamilyMembers.some(m => m.relation === 'mere');
+        case 'beau_pere':
+          return !userFamilyMembers.some(m => m.relation === 'beau_pere');
+        case 'belle_mere':
+          return !userFamilyMembers.some(m => m.relation === 'belle_mere');
+        case 'enfant':
+          return userFamilyMembers.filter(m => m.relation === 'enfant').length < 6;
+        default:
+          return false;
+      }
     } catch (error) {
       console.error('Error checking if can add member:', error);
       return false;
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, membresFamille]);
 
   const ajouterMembreFamille = async (data: FamilyMemberFormData, membreId: string): Promise<boolean> => {
     if (!isAuthenticated || !user) {
@@ -177,12 +196,13 @@ export function FamilleProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      return await FamilyService.getFamilyMembers(membreId);
+      // Use the family members already loaded in context instead of making a new API call
+      return membresFamille.filter(m => m.member_of_user_id === membreId);
     } catch (error) {
       console.error('Error getting family members by member:', error);
       return [];
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, membresFamille]);
 
   return (
     <FamilleContext.Provider value={{

@@ -3,7 +3,7 @@ import { MembreFamilleFormData, MembreFamille } from '../types';
 import { X, User, Calendar, Users, Upload } from 'lucide-react';
 
 interface FamilleFormProps {
-  onSubmit: (data: MembreFamilleFormData) => boolean;
+  onSubmit: (data: MembreFamilleFormData) => Promise<boolean>;
   onCancel: () => void;
   canAddRelation: (relation: MembreFamille['relation']) => boolean;
 }
@@ -21,6 +21,8 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
 
   const [errors, setErrors] = useState<Partial<MembreFamilleFormData>>({});
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const relationOptions = [
     { value: 'epoux', label: 'Époux' },
     { value: 'epouse', label: 'Épouse' },
@@ -31,7 +33,7 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
     { value: 'belle_mere', label: 'Belle-mère' }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -58,31 +60,40 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
       return;
     }
 
-    // Préparer les données pour le service
-    const familyData = {
-      first_name: formData.prenom,
-      last_name: formData.nom,
-      npi: formData.npi,
-      birth_certificate_ref: formData.acteNaissance,
-      date_of_birth: formData.dateNaissance,
-      relation: formData.relation,
-      justification_document: formData.pieceJustificative
-    };
+    setIsSubmitting(true);
     
-    const success = onSubmit(familyData);
-    if (success) {
-      setFormData({ 
-        nom: '', 
-        prenom: '', 
-        npi: '', 
-        acteNaissance: '', 
-        dateNaissance: '', 
-        relation: 'enfant',
-        pieceJustificative: undefined
-      });
-      setErrors({});
-    } else {
-      setErrors({ relation: 'Impossible d\'ajouter ce type de membre (limite atteinte ou déjà existant)' });
+    try {
+      // Préparer les données pour le service
+      const familyData = {
+        first_name: formData.prenom,
+        last_name: formData.nom,
+        npi: formData.npi,
+        birth_certificate_ref: formData.acteNaissance,
+        date_of_birth: formData.dateNaissance,
+        relation: formData.relation,
+        justification_document: formData.pieceJustificative
+      };
+      
+      const success = await onSubmit(familyData);
+      if (success) {
+        setFormData({ 
+          nom: '', 
+          prenom: '', 
+          npi: '', 
+          acteNaissance: '', 
+          dateNaissance: '', 
+          relation: 'enfant',
+          pieceJustificative: undefined
+        });
+        setErrors({});
+      } else {
+        setErrors({ relation: 'Impossible d\'ajouter ce type de membre (limite atteinte ou déjà existant)' });
+      }
+    } catch (error) {
+      console.error('Error submitting family member:', error);
+      setErrors({ relation: 'Erreur lors de l\'ajout du membre de famille' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -323,14 +334,24 @@ export function FamilleForm({ onSubmit, onCancel, canAddRelation }: FamilleFormP
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+              disabled={isSubmitting}
+              className={`flex-1 py-2 px-4 rounded-md transition-colors text-sm font-medium ${
+                isSubmitting 
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              Ajouter
+              {isSubmitting ? 'Ajout en cours...' : 'Ajouter'}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
+              disabled={isSubmitting}
+              className={`flex-1 py-2 px-4 rounded-md transition-colors text-sm font-medium ${
+                isSubmitting
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+              }`}
             >
               Annuler
             </button>

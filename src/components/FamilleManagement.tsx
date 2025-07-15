@@ -6,6 +6,45 @@ import { FamilleForm } from './FamilleForm';
 import { MembreFamilleFormData } from '../types';
 import { Plus, User, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
+// Helper functions moved outside component for better performance
+const getRelationLabel = (relation: string) => {
+  const labels = {
+    'epoux': 'Époux',
+    'epouse': 'Épouse',
+    'enfant': 'Enfant',
+    'pere': 'Père',
+    'mere': 'Mère',
+    'beau_pere': 'Beau-père',
+    'belle_mere': 'Belle-mère'
+  };
+  return labels[relation as keyof typeof labels] || relation;
+};
+
+const getRelationColor = (relation: string) => {
+  const colors = {
+    'epoux': 'bg-pink-100 text-pink-800',
+    'epouse': 'bg-pink-100 text-pink-800',
+    'enfant': 'bg-blue-100 text-blue-800',
+    'pere': 'bg-green-100 text-green-800',
+    'mere': 'bg-green-100 text-green-800',
+    'beau_pere': 'bg-purple-100 text-purple-800',
+    'belle_mere': 'bg-purple-100 text-purple-800'
+  };
+  return colors[relation as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+};
+
+const calculateAge = (dateNaissance: string) => {
+  const today = new Date();
+  const birthDate = new Date(dateNaissance);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
 
 export function FamilleManagement() {
   const { user } = useAuth();
@@ -39,61 +78,25 @@ export function FamilleManagement() {
     loadFamilyMembers();
   }, [user, getMembresFamilleByMembre, membresFamille]); // Garder membresFamille pour détecter les changements
 
-  const handleAjouterMembre = (data: MembreFamilleFormData): boolean => {
+  const handleAjouterMembre = async (data: MembreFamilleFormData): Promise<boolean> => {
     if (user) {
-      // Appel asynchrone géré dans le contexte
-      ajouterMembreFamille(data, user.id).then(success => {
+      try {
+        const success = await ajouterMembreFamille(data, user.id);
         if (success) {
           setShowForm(false);
           // Le contexte se charge automatiquement de rafraîchir les données
           // via refreshFamilyMembers dans ajouterMembreFamille
+          return true;
         }
-      }).catch(error => {
+        return false;
+      } catch (error) {
         console.error('Error adding family member:', error);
-      });
-      return true; // Retourner true pour fermer le formulaire, la gestion d'erreur se fait dans le then/catch
+        return false;
+      }
     }
     return false;
   };
 
-  const getRelationLabel = (relation: string) => {
-    const labels = {
-      'epoux': 'Époux',
-      'epouse': 'Épouse',
-      'enfant': 'Enfant',
-      'pere': 'Père',
-      'mere': 'Mère',
-      'beau_pere': 'Beau-père',
-      'belle_mere': 'Belle-mère'
-    };
-    return labels[relation as keyof typeof labels] || relation;
-  };
-
-  const getRelationColor = (relation: string) => {
-    const colors = {
-      'epoux': 'bg-pink-100 text-pink-800',
-      'epouse': 'bg-pink-100 text-pink-800',
-      'enfant': 'bg-blue-100 text-blue-800',
-      'pere': 'bg-green-100 text-green-800',
-      'mere': 'bg-green-100 text-green-800',
-      'beau_pere': 'bg-purple-100 text-purple-800',
-      'belle_mere': 'bg-purple-100 text-purple-800'
-    };
-    return colors[relation as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  const calculateAge = (dateNaissance: string) => {
-    const today = new Date();
-    const birthDate = new Date(dateNaissance);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
 
   if (loadingFamily) {
     return (

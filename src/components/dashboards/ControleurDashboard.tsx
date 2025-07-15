@@ -6,6 +6,7 @@ import { FileText, Calendar, DollarSign, CheckCircle, XCircle, Clock, User, Filt
 
 export function ControleurDashboard() {
   const { user } = useAuth();
+  console.log('👤 Utilisateur connecté:', user);
   const { demandes, loading: demandesLoading, updateDemandeStatut } = useDemandes();
   const navigate = useNavigate();
   
