@@ -24,7 +24,6 @@ export interface Profile {
   adhesion_number: string | null;
   employee_number: string | null;
   date_adhesion: string | null;
-  avatar_url: string | null;
   is_active: boolean | null;
   created_at: string;
 }

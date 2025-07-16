@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileService } from '../../services/profileService';
-import { StorageService } from '../../services/storageService';
 import type { Profile } from '../../lib/supabase';
 import { 
   User, 
@@ -17,9 +16,7 @@ import {
   AlertCircle,
   Calendar,
   Building,
-  Shield,
-  Camera,
-  Upload
+  Shield
 } from 'lucide-react';
 
 interface ProfileFormData {
@@ -43,7 +40,6 @@ export function MonCompte() {
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -275,89 +271,6 @@ export function MonCompte() {
     };
 
     changePassword();
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploadingAvatar(true);
-    
-    try {
-      // Upload avatar to storage
-      const uploadResult = await StorageService.uploadAvatar(file, user.id);
-      
-      if (uploadResult) {
-        // Update profile with new avatar URL
-        const success = await ProfileService.updateProfile(user.id, {
-          avatar_url: uploadResult.url
-        });
-        
-        if (success) {
-          // Refresh user data in context
-          await refreshUser();
-          
-          setMessage({
-            type: 'success',
-            text: 'Photo de profil mise à jour avec succès'
-          });
-        } else {
-          setMessage({
-            type: 'error',
-            text: 'Erreur lors de la sauvegarde de la photo de profil'
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      setMessage({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Erreur lors du téléchargement de la photo'
-      });
-    } finally {
-      setUploadingAvatar(false);
-      // Reset file input
-      event.target.value = '';
-    }
-    
-    setTimeout(() => setMessage(null), 5000);
-  };
-
-  const handleRemoveAvatar = async () => {
-    if (!user) return;
-
-    try {
-      // Delete avatar from storage
-      await StorageService.deleteAvatar(user.id);
-      
-      // Update profile to remove avatar URL
-      const success = await ProfileService.updateProfile(user.id, {
-        avatar_url: null
-      });
-      
-      if (success) {
-        // Refresh user data in context
-        await refreshUser();
-        
-        setMessage({
-          type: 'success',
-          text: 'Photo de profil supprimée avec succès'
-        });
-      } else {
-        setMessage({
-          type: 'error',
-          text: 'Erreur lors de la suppression de la photo de profil'
-        });
-      }
-    } catch (error) {
-      console.error('Avatar removal error:', error);
-      setMessage({
-        type: 'error',
-        text: 'Erreur lors de la suppression de la photo'
-      });
-    }
-    
-    setTimeout(() => setMessage(null), 5000);
   };
 
   const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
@@ -690,69 +603,6 @@ export function MonCompte() {
 
             {activeTab === 'password' && (
               <div className="space-y-6">
-                {isEditing && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Photo de profil
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-                        {user?.avatarUrl ? (
-                          <img 
-                            src={user.avatarUrl} 
-                            alt="Photo de profil" 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Shield className="w-10 h-10 text-orange-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          id="avatar-upload-main"
-                          accept="image/jpeg,image/jpg,image/png,image/webp"
-                          onChange={handleAvatarUpload}
-                          className="hidden"
-                          disabled={uploadingAvatar}
-                        />
-                        <div className="flex space-x-2">
-                          <label
-                            htmlFor="avatar-upload-main"
-                            className={`inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${
-                              uploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            {uploadingAvatar ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                                Téléchargement...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-4 h-4 mr-2" />
-                                Choisir une photo
-                              </>
-                            )}
-                          </label>
-                          {user?.avatarUrl && (
-                            <button
-                              onClick={handleRemoveAvatar}
-                              className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 transition-colors"
-                              disabled={uploadingAvatar}
-                            >
-                              Supprimer
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          JPG, PNG ou WebP. Taille maximale : 5 MB
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     Changer le mot de passe

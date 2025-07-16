@@ -10,7 +10,6 @@ export interface AuthUser {
   mustChangePassword?: boolean;
   isFirstLogin?: boolean;
   lastPasswordChange?: string;
-  avatarUrl?: string;
 }
 
 export interface AuthUser {
@@ -21,7 +20,6 @@ export interface AuthUser {
   mustChangePassword?: boolean;
   isFirstLogin?: boolean;
   lastPasswordChange?: string;
-  avatarUrl?: string;
 }
 
 export class AuthService {
@@ -60,8 +58,7 @@ export class AuthService {
         role: profile.role,
         mustChangePassword: profile.must_change_password,
         isFirstLogin: profile.is_first_login,
-        lastPasswordChange: profile.last_password_change,
-        avatarUrl: profile.avatar_url
+        lastPasswordChange: profile.last_password_change
       };
     } catch (error) {
       console.error('Sign in error:', error);
@@ -99,8 +96,7 @@ export class AuthService {
         role: profile.role,
         mustChangePassword: profile.must_change_password,
         isFirstLogin: profile.is_first_login,
-        lastPasswordChange: profile.last_password_change,
-        avatarUrl: profile.avatar_url
+        lastPasswordChange: profile.last_password_change
       };
     } catch (error) {
       console.error('Get current user error:', error);
