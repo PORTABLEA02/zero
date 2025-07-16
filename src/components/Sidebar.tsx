@@ -96,8 +96,14 @@ export function Sidebar({ userRole = 'administrateur' }: SidebarProps) {
       <div className="border-t border-gray-200 p-4 flex-shrink-0">
         <div className="flex items-center mb-3">
           <div className="flex-shrink-0">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-              {userRole === 'controleur' ? (
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+              {user?.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt="Photo de profil" 
+                  className="w-full h-full object-cover"
+                />
+              ) : userRole === 'controleur' ? (
                 <Shield className="h-6 w-6 text-orange-600" />
               ) : (
                 <User className="h-6 w-6 text-blue-600" />

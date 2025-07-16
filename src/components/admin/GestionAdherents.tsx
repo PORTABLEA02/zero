@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProfileService } from '../../services/profileService';
 import { AuthService } from '../../services/authService';
+import { FamilyService } from '../../services/familyService';
+
 import { AjouterAdherentForm } from './AjouterAdherentForm';
 import { FamilleEditForm } from '../FamilleEditForm';
 import { supabase } from '../../lib/supabase';
