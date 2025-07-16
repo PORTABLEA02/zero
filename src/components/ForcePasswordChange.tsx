@@ -27,6 +27,10 @@ export function ForcePasswordChange() {
   });
   const [errors, setErrors] = useState<Partial<PasswordFormData>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const handlePasswordChange = (field: keyof PasswordFormData, value: string) => {
     setPasswordData(prev => ({ ...prev, [field]: value }));
@@ -67,14 +71,26 @@ export function ForcePasswordChange() {
     setIsLoading(true);
     
     try {
-      // Simulation de la mise à jour du mot de passe
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (updatePassword) {
-        updatePassword(passwordData.newPassword);
+        await updatePassword(passwordData.newPassword);
       }
+      
+      setMessage({
+        type: 'success',
+        text: 'Mot de passe défini avec succès'
+      });
+      
+      setTimeout(() => setMessage(null), 5000);
     } catch (error) {
-      console.error('Erreur lors du changement de mot de passe:', error);
+      console.error('Erreur lors du changement de mot de passe:');
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du changement de mot de passe';
+      setMessage({
+        type: 'error',
+        text: errorMessage === 'New password should be different from the old password.' 
+          ? 'Le nouveau mot de passe doit être différent de l\'ancien mot de passe.'
+          : errorMessage
+      });
+      setTimeout(() => setMessage(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +163,24 @@ export function ForcePasswordChange() {
 
         {/* Formulaire */}
         <div className="bg-white rounded-xl shadow-lg p-8">
+          {/* Message de notification */}
+          {message && (
+            <div className={`mb-6 p-4 rounded-lg border ${
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-200 text-green-800' 
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              <div className="flex items-center">
+                {message.type === 'success' ? (
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 mr-2" />
+                )}
+                {message.text}
+              </div>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">

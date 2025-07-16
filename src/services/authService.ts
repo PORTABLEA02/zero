@@ -112,7 +112,7 @@ export class AuthService {
 
       if (updateError) {
         console.error('Update password error:', updateError);
-        return false;
+        throw new Error(updateError.message);
       }
 
       // Mettre à jour le profil
@@ -131,7 +131,7 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error('Update password error:', error);
-      return false;
+      throw error;
     }
   }
 

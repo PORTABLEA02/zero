@@ -239,7 +239,9 @@ export function MonCompte() {
       setIsLoading(true);
       
       try {
-        // await updatePassword(passwordData.newPassword);
+        if (updatePassword) {
+          await updatePassword(passwordData.newPassword);
+        }
         
         setMessage({
           type: 'success',
@@ -255,9 +257,12 @@ export function MonCompte() {
         setTimeout(() => setMessage(null), 5000);
       } catch (error) {
         console.error('Error changing password:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Erreur lors du changement de mot de passe';
         setMessage({
           type: 'error',
-          text: 'Erreur lors du changement de mot de passe'
+          text: errorMessage === 'New password should be different from the old password.' 
+            ? 'Le nouveau mot de passe doit être différent de l\'ancien mot de passe.'
+            : errorMessage
         });
         setTimeout(() => setMessage(null), 5000);
       } finally {

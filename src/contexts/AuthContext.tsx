@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Update password error:', error);
+      throw error;
     }
   };
 
