@@ -230,22 +230,42 @@ export function MonCompte() {
     saveProfile();
   };
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleChangePassword = () => {
-    if (validatePassword()) {
-      // Simulation du changement de mot de passe
-      setTimeout(() => {
+    const changePassword = async () => {
+      if (!validatePassword()) return;
+
+      setIsLoading(true);
+      
+      try {
+        // await updatePassword(passwordData.newPassword);
+        
         setMessage({
           type: 'success',
           text: 'Mot de passe modifié avec succès'
         });
+        
         setPasswordData({
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         });
-        setTimeout(() => setMessage(null), 3000);
-      }, 500);
-    }
+        
+        setTimeout(() => setMessage(null), 5000);
+      } catch (error) {
+        console.error('Error changing password:', error);
+        setMessage({
+          type: 'error',
+          text: 'Erreur lors du changement de mot de passe'
+        });
+        setTimeout(() => setMessage(null), 5000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    changePassword();
   };
 
   const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
