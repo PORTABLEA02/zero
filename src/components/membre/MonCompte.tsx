@@ -16,7 +16,9 @@ import {
   AlertCircle,
   Calendar,
   Building,
-  CreditCard
+  CreditCard,
+  Camera,
+  Trash2
 } from 'lucide-react';
 
 interface ProfileFormData {
@@ -41,6 +43,7 @@ export function MonCompte() {
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -242,6 +245,8 @@ export function MonCompte() {
   };
 
   const [isLoading, setIsLoading] = useState(false);
+
+  const { updatePassword } = useAuth();
 
   const handleChangePassword = () => {
     const changePassword = async () => {
