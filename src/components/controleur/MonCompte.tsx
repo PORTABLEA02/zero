@@ -318,6 +318,18 @@ export function MonCompte() {
     if (!user) return;
 
     try {
+      // Supprimer le fichier du stockage si l'utilisateur a un avatar
+      if (user.avatarUrl) {
+        // Extraire le chemin du fichier depuis l'URL
+        const url = new URL(user.avatarUrl);
+        const pathParts = url.pathname.split('/');
+        const bucketIndex = pathParts.findIndex(part => part === 'avatars');
+        if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+          const filePath = pathParts.slice(bucketIndex).join('/');
+          await StorageService.deleteAvatar(filePath);
+        }
+      }
+
       const success = await ProfileService.updateProfile(user.id, {
         avatar_url: null
       });

@@ -53,7 +53,9 @@ export class StorageService {
       const { error } = await supabase.storage
         .from(bucketName)
         .remove([filePath]);
-
+        console.error('buckey:',bucketName);
+      console.error('path file error:',filePath);
+      
       if (error) {
         console.error('Delete file error:', error);
         return false;
@@ -100,24 +102,37 @@ export class StorageService {
       throw new Error('Fichier trop volumineux. Taille maximale : 2 MB');
     }
 
+    // Supprimer l'ancien avatar s'il existe
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.avatar_url) {
+          const url = new URL(profile.avatar_url);
+          const pathParts = url.pathname.split('/');
+          const bucketIndex = pathParts.findIndex(part => part === 'avatars');
+          if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+            const oldFilePath = pathParts.slice(bucketIndex).join('/');
+            await this.deleteAvatar(oldFilePath);
+          }
+        }
+      }
+    } catch (error) {
+      // Ne pas faire échouer l'upload si la suppression de l'ancien fichier échoue
+      console.warn('Impossible de supprimer l\'ancien avatar:', error);
+    }
+
     return this.uploadFile(file, `avatars/${userId}`, StorageService.AVATARS_BUCKET_NAME);
   }
 
   static async deleteAvatar(filePath: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.storage
-        .from(StorageService.AVATARS_BUCKET_NAME)
-        .remove([filePath]);
-
-      if (error) {
-        console.error('Delete avatar error:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Storage service error:', error);
-      return false;
-    }
+ const cleanPath = filePath.replace(/^avatars\//, "");
+    console.error('bucket:',this.AVATARS_BUCKET_NAME);
+  return this.deleteFile(cleanPath, this.AVATARS_BUCKET_NAME);
   }
 }
