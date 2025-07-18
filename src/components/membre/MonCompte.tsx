@@ -284,6 +284,76 @@ export function MonCompte() {
     changePassword();
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+
+    setUploadingAvatar(true);
+    try {
+      // Upload du fichier vers le bucket avatars
+      const uploadResult = await StorageService.uploadAvatar(file, user.id);
+      
+      if (uploadResult) {
+        // Mettre à jour le profil avec la nouvelle URL d'avatar
+        const success = await ProfileService.updateProfile(user.id, {
+          avatar_url: uploadResult.url
+        });
+        
+        if (success) {
+          // Rafraîchir les données utilisateur
+          await refreshUser();
+          setMessage({
+            type: 'success',
+            text: 'Photo de profil mise à jour avec succès'
+          });
+        } else {
+          setMessage({
+            type: 'error',
+            text: 'Erreur lors de la mise à jour du profil'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Erreur lors de l\'upload de l\'avatar'
+      });
+    } finally {
+      setUploadingAvatar(false);
+      setTimeout(() => setMessage(null), 5000);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+
+    try {
+      const success = await ProfileService.updateProfile(user.id, {
+        avatar_url: null
+      });
+      
+      if (success) {
+        await refreshUser();
+        setMessage({
+          type: 'success',
+          text: 'Photo de profil supprimée avec succès'
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: 'Erreur lors de la suppression de la photo'
+        });
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      setMessage({
+        type: 'error',
+        text: 'Erreur lors de la suppression de la photo'
+      });
+    }
+    
+    setTimeout(() => setMessage(null), 5000);
+  };
   const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -366,8 +436,47 @@ export function MonCompte() {
               {/* En-tête du profil */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-blue-600" />
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+                      {user?.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl} 
+                          alt="Photo de profil" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-8 h-8 text-blue-600" />
+                      )}
+                    </div>
+                    {isEditing && (
+                      <div className="absolute -bottom-2 -right-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleAvatarUpload(file);
+                            }
+                          }}
+                          className="hidden"
+                          id="avatar-upload"
+                          disabled={uploadingAvatar}
+                        />
+                        <label
+                          htmlFor="avatar-upload"
+                          className={`flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 transition-colors ${
+                            uploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {uploadingAvatar ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <Camera className="w-4 h-4" />
+                          )}
+                        </label>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">
@@ -386,13 +495,24 @@ export function MonCompte() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  {isEditing ? 'Annuler' : 'Modifier'}
-                </button>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  {isEditing && user?.avatarUrl && (
+                    <button
+                      onClick={handleRemoveAvatar}
+                      className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Supprimer photo
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    {isEditing ? 'Annuler' : 'Modifier'}
+                  </button>
+                </div>
               </div>
 
               {/* Informations d'adhésion */}
