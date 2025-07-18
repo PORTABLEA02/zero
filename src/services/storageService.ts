@@ -52,10 +52,7 @@ export class StorageService {
     try {
       const { error } = await supabase.storage
         .from(bucketName)
-        .remove([filePath]);
-        console.error('buckey:',bucketName);
-      console.error('path file error:',filePath);
-      
+        .remove([filePath]);      
       if (error) {
         console.error('Delete file error:', error);
         return false;

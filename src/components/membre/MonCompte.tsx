@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileService } from '../../services/profileService';
+import { StorageService } from '../../services/storageService';
 import type { Profile } from '../../lib/supabase';
 import { 
   User, 
