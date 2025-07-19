@@ -156,13 +156,7 @@ export function MonCompte() {
   const validateProfile = (): boolean => {
     const newErrors: Partial<ProfileFormData> = {};
     
-    if (!profileData.nom.trim()) newErrors.nom = 'Le nom est requis';
-    if (!profileData.prenom.trim()) newErrors.prenom = 'Le prénom est requis';
-    if (!profileData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
-      newErrors.email = 'Format d\'email invalide';
-    }
+    // Validation seulement pour les champs modifiables par l'adhérent
     if (!profileData.telephone.trim()) {
       newErrors.telephone = 'Le téléphone est requis';
     } else if (!/^\+?[\d\s-()]+$/.test(profileData.telephone)) {
@@ -207,8 +201,7 @@ export function MonCompte() {
       try {
         // Construire l'objet de mise à jour
         const updates: Partial<Profile> = {
-          full_name: `${profileData.prenom} ${profileData.nom}`,
-          email: profileData.email,
+          // Ne mettre à jour que les champs modifiables par l'adhérent
           phone: profileData.telephone,
           address: profileData.adresse,
           service: profileData.service
@@ -466,7 +459,7 @@ export function MonCompte() {
                         <User className="w-8 h-8 text-blue-600" />
                       )}
                     </div>
-                    {isEditing && (
+                    {isEditing && !user?.avatarUrl && (
                       <div className="absolute -bottom-2 -right-2">
                         <input
                           type="file"
@@ -511,18 +504,15 @@ export function MonCompte() {
                       <Calendar className="w-3 h-3 mr-1" />
                       Membre depuis {profileData.dateAdhesion ? new Date(profileData.dateAdhesion).toLocaleDateString('fr-FR') : 'date inconnue'}
                     </div>
+                    {user?.avatarUrl && (
+                      <div className="flex items-center text-xs text-green-600 mt-1">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Photo de profil définie
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                  {isEditing && user?.avatarUrl && (
-                    <button
-                      onClick={handleRemoveAvatar}
-                      className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Supprimer photo
-                    </button>
-                  )}
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -532,6 +522,27 @@ export function MonCompte() {
                   </button>
                 </div>
               </div>
+
+              {/* Information sur la photo de profil */}
+              {!user?.avatarUrl && isEditing && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Photo de profil</h4>
+                  <p className="text-sm text-blue-800">
+                    Vous pouvez ajouter une photo de profil en cliquant sur l'icône caméra. 
+                    <strong> Attention :</strong> Une fois ajoutée, la photo ne pourra plus être modifiée ou supprimée.
+                  </p>
+                </div>
+              )}
+
+              {user?.avatarUrl && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-green-900 mb-2">Photo de profil</h4>
+                  <p className="text-sm text-green-800">
+                    Votre photo de profil a été définie avec succès. Pour des raisons de sécurité, 
+                    elle ne peut plus être modifiée. Contactez l'administrateur si vous souhaitez la changer.
+                  </p>
+                </div>
+              )}
 
               {/* Informations d'adhésion */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -573,16 +584,15 @@ export function MonCompte() {
                     <input
                       type="text"
                       value={profileData.nom}
-                      onChange={(e) => handleProfileChange('nom', e.target.value)}
-                      disabled={!isEditing}
+                      disabled={true}
                       className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      } ${errors.profile?.nom ? 'border-red-500' : ''}`}
+                        'border-gray-200 bg-gray-50'
+                      }`}
                     />
                   </div>
-                  {errors.profile?.nom && (
-                    <p className="text-red-500 text-xs mt-1">{errors.profile.nom}</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Le nom ne peut être modifié que par l'administrateur
+                  </p>
                 </div>
 
                 <div>
@@ -594,16 +604,15 @@ export function MonCompte() {
                     <input
                       type="text"
                       value={profileData.prenom}
-                      onChange={(e) => handleProfileChange('prenom', e.target.value)}
-                      disabled={!isEditing}
+                      disabled={true}
                       className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      } ${errors.profile?.prenom ? 'border-red-500' : ''}`}
+                        'border-gray-200 bg-gray-50'
+                      }`}
                     />
                   </div>
-                  {errors.profile?.prenom && (
-                    <p className="text-red-500 text-xs mt-1">{errors.profile.prenom}</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Le prénom ne peut être modifié que par l'administrateur
+                  </p>
                 </div>
 
                 <div>
@@ -615,16 +624,15 @@ export function MonCompte() {
                     <input
                       type="email"
                       value={profileData.email}
-                      onChange={(e) => handleProfileChange('email', e.target.value)}
-                      disabled={!isEditing}
+                      disabled={true}
                       className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-                        isEditing ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
-                      } ${errors.profile?.email ? 'border-red-500' : ''}`}
+                        'border-gray-200 bg-gray-50'
+                      }`}
                     />
                   </div>
-                  {errors.profile?.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.profile.email}</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    L'email ne peut être modifié que par l'administrateur
+                  </p>
                 </div>
 
                 <div>
