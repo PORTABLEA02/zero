@@ -174,7 +174,7 @@ export function DemandeForm() {
       }
       
       // Validation de la pièce justificative pour les allocations
-      if (!formData.fichierPieceJointe && !formData.pieceJointe?.trim()) {
+      if (!formData.fichierPieceJointe && !formData.pieceJointe?.trim() && formData.paiement.modePaiement !== 'cheque') {
         newErrors.pieceJointe = 'Une pièce justificative est requise pour ce type de demande';
       }
     }
@@ -571,7 +571,7 @@ export function DemandeForm() {
 
           <div>
             <label htmlFor="pieceJointe" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-              Pièce justificative {requiresEventDate(formData.type) ? <span className="text-red-500">*</span> : '(optionnel)'}
+              Pièce justificative {requiresEventDate(formData.type) && formData.paiement.modePaiement !== 'cheque' ? <span className="text-red-500">*</span> : '(optionnel)'}
             </label>
             
             {/* Zone de téléchargement de fichier */}
@@ -653,19 +653,22 @@ export function DemandeForm() {
             {/* Messages d'aide selon le type de demande */}
             <div className="mt-2 text-xs text-gray-600">
               {formData.type === 'mariage' && (
-                <p>• Certificat de mariage ou acte de mariage requis</p>
+                <p>• Certificat de mariage ou acte de mariage {formData.paiement.modePaiement === 'cheque' ? '(optionnel pour paiement par chèque)' : 'requis'}</p>
               )}
               {formData.type === 'naissance' && (
-                <p>• Acte de naissance ou certificat de naissance requis</p>
+                <p>• Acte de naissance ou certificat de naissance {formData.paiement.modePaiement === 'cheque' ? '(optionnel pour paiement par chèque)' : 'requis'}</p>
               )}
               {formData.type === 'deces' && (
-                <p>• Acte de décès ou certificat de décès requis</p>
+                <p>• Acte de décès ou certificat de décès {formData.paiement.modePaiement === 'cheque' ? '(optionnel pour paiement par chèque)' : 'requis'}</p>
               )}
               {formData.type === 'pret_social' && (
                 <p>• Justificatifs de revenus, pièce d'identité (optionnel)</p>
               )}
               {formData.type === 'pret_economique' && (
                 <p>• Business plan, justificatifs financiers (optionnel)</p>
+              )}
+              {formData.paiement.modePaiement === 'cheque' && requiresEventDate(formData.type) && (
+                <p className="text-blue-600 font-medium">• Pour le paiement par chèque, la pièce justificative est optionnelle</p>
               )}
             </div>
             

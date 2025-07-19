@@ -651,11 +651,19 @@ React.useEffect(() => {
                       {/* Informations de l'adhérent */}
                       <div className="flex items-center flex-1">
                         <div className="flex-shrink-0 h-12 w-12">
-                          <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
-                            <span className="text-sm font-bold text-blue-600">
-                              {adherent.full_name.split(' ')[0]?.charAt(0)}{adherent.full_name.split(' ')[1]?.charAt(0) || ''}
-                            </span>
-                          </div>
+                          {adherent.avatar_url ? (
+                            <img 
+                              src={adherent.avatar_url} 
+                              alt={`Photo de ${adherent.full_name}`}
+                              className="h-12 w-12 rounded-full object-cover border-2 border-blue-200"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                              <span className="text-sm font-bold text-blue-600">
+                                {adherent.full_name.split(' ')[0]?.charAt(0)}{adherent.full_name.split(' ')[1]?.charAt(0) || ''}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="ml-4 flex-1">
