@@ -81,8 +81,7 @@ export class ProfileService {
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: false })
-        .eq('id', userId);
-
+        .eq('id', userId);      
       if (error) {
         console.error('Suspend user error:', error);
         return false;

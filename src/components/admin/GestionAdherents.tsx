@@ -225,11 +225,12 @@ React.useEffect(() => {
 
   const confirmAction = (action: 'activer' | 'suspendre' | 'reinitialiser', adherent: Profile) => {
     setShowConfirmModal({ show: true, action, adherent });
+    
   };
 
   const executeAction = () => {
     if (!showConfirmModal.adherent || !showConfirmModal.action) return;
-
+  
     const executeAsyncAction = async () => {
       try {
         let success = false;
@@ -260,7 +261,7 @@ React.useEffect(() => {
           // Recharger les données
           const [profilesData, familyData] = await Promise.all([
             ProfileService.getAllProfiles(),
-            FamilyService.getAllFamilyMembers()
+            supabase.from('family_members').select('*').order('created_at', { ascending: false }).then(({ data }) => data || [])
           ]);
           setAdherents(profilesData);
           setMembresFamille(familyData);
