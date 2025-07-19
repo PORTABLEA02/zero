@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DemandeProvider } from './contexts/DemandeContext';
 import { FamilleProvider } from './contexts/FamilleContext';
@@ -44,6 +44,7 @@ const handleGlobalError = (error: Error, errorInfo: React.ErrorInfo) => {
 // Composant pour protéger les routes qui nécessitent une authentification
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -63,6 +64,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Vérifier si l'utilisateur doit changer son mot de passe
   if (user?.mustChangePassword || user?.isFirstLogin) {
     return <ForcePasswordChange />;
+  }
+  
+  // Vérifier si l'utilisateur n'a pas de photo de profil et le rediriger vers Mon compte
+  if (user && !user.avatarUrl) {
+    // Déterminer le chemin "Mon compte" selon le rôle
+    let monComptePath = '';
+    switch (user.role) {
+      case 'membre':
+        monComptePath = '/membre/compte';
+        break;
+      case 'controleur':
+        monComptePath = '/controleur/compte';
+        break;
+      case 'administrateur':
+        monComptePath = '/admin/compte';
+        break;
+      default:
+        monComptePath = '/dashboard';
+    }
+    
+    // Éviter la redirection infinie si l'utilisateur est déjà sur sa page Mon compte
+    if (location.pathname !== monComptePath) {
+      return <Navigate to={monComptePath} replace />;
+    }
   }
   
   return <>{children}</>;

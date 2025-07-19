@@ -524,23 +524,45 @@ export function MonCompte() {
               </div>
 
               {/* Information sur la photo de profil */}
-              {!user?.avatarUrl && isEditing && (
+              {!user?.avatarUrl && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Photo de profil</h4>
-                  <p className="text-sm text-blue-800">
-                    Vous pouvez ajouter une photo de profil en cliquant sur l'icône caméra. 
-                    <strong> Attention :</strong> Une fois ajoutée, la photo ne pourra plus être modifiée ou supprimée.
-                  </p>
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-900 mb-2">Photo de profil requise pour la carte de membre</h4>
+                      <p className="text-sm text-blue-800 mb-2">
+                        Votre photo de profil est <strong>obligatoire</strong> pour l'émission de votre carte de membre officielle. 
+                        Veuillez télécharger une photo claire et récente de votre visage.
+                      </p>
+                      {isEditing && (
+                        <p className="text-sm text-blue-800">
+                          Cliquez sur l'icône caméra pour ajouter votre photo. 
+                          <strong> Attention :</strong> Une fois ajoutée, la photo ne pourra plus être modifiée ou supprimée.
+                        </p>
+                      )}
+                      {!isEditing && (
+                        <p className="text-sm text-blue-800">
+                          Cliquez sur "Modifier" pour ajouter votre photo de profil.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
+              {/* Message de félicitations pour photo définie */}
               {user?.avatarUrl && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-green-900 mb-2">Photo de profil</h4>
-                  <p className="text-sm text-green-800">
-                    Votre photo de profil a été définie avec succès. Pour des raisons de sécurité, 
-                    elle ne peut plus être modifiée. Contactez l'administrateur si vous souhaitez la changer.
-                  </p>
+                  <div className="flex items-start">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-medium text-green-900 mb-2">Photo de profil</h4>
+                      <p className="text-sm text-green-800">
+                        Parfait ! Votre photo de profil a été définie avec succès. Votre carte de membre peut maintenant être émise. 
+                        Pour des raisons de sécurité, elle ne peut plus être modifiée. Contactez l'administrateur si vous souhaitez la changer.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
